@@ -4,14 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Grass Voice</title>
-<meta name="description" content="Grass Voice by AZBYYKA — запись собеседований, разделение голосов, расшифровка и анализ кандидата">
-<meta name="theme-color" content="#0E0E13">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='a' cx='30%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23FF5FA2'/%3E%3Cstop offset='1' stop-color='%238B6CFF'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23a)'/%3E%3Cpath d='M18 34h4v-6h-4zm8 8h4V22h-4zm8-4h4V26h-4zm8-6h4v-4h-4z' fill='%23fff'/%3E%3C/svg%3E">
+<meta name="description" content="Grass Voice — запись собеседований, расшифровка и короткий разбор кандидата">
+<meta name="theme-color" content="#FAFAFA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111113" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23111113'/%3E%3Cpath d='M18 34h4v-6h-4zm8 8h4V22h-4zm8-4h4V26h-4zm8-6h4v-4h-4z' fill='%23fff'/%3E%3C/svg%3E">
 <script>
-/* многопоточное распознавание: на хостингах без своих заголовков включаем изоляцию через service worker */
 (function(){try{
-  if(window.crossOriginIsolated||!window.isSecureContext||!("serviceWorker" in navigator))return;
-  if(location.protocol==="file:")return;
+  if(window.crossOriginIsolated||!window.isSecureContext||!("serviceWorker" in navigator)||location.protocol==="file:")return;
   var k="gv-coi-reload";
   navigator.serviceWorker.register("sw.js").then(function(reg){
     function go(){try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){return}location.reload()}
@@ -22,356 +21,259 @@
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
-<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-/* Тёмное «музыкальное» приложение: верхняя панель, крупная живая волна на записи, карточки с мягкими градиентами */
+/* Минимализм: одна узкая колонка, нейтральные цвета, цвет только у меток говорящих */
 :root{
-  --bg:#0E0E13; --bg2:#13131A; --panel:#1A1A22; --panel2:#22222C; --hover:#2A2A36; --line:#2B2B37; --line2:#363644;
-  --ink:#F5F5F8; --muted:#A4A4B6; --faint:#6F6F84;
-  --accent:#FFD43B; --accent-ink:#17140A; --accent-soft:rgba(255,212,59,.14);
-  --violet:#8B6CFF; --pink:#FF5FA2; --orange:#FF9447; --cyan:#4DD6FF;
-  --boss:#A08FFF; --boss-soft:rgba(160,143,255,.16); --cand:#FF9F68; --cand-soft:rgba(255,159,104,.16); --other:#5FD3C6; --other-soft:rgba(95,211,198,.16);
-  --good:#5CD68C; --good-soft:rgba(92,214,140,.14); --warn:#FFC24D; --warn-soft:rgba(255,194,77,.14); --bad:#FF6B6B; --bad-soft:rgba(255,107,107,.14); --info:#7FB2FF; --info-soft:rgba(127,178,255,.14);
-  --brand:"Unbounded","Onest",system-ui,sans-serif;
+  --bg:#FAFAFA; --panel:#FFFFFF; --sunk:#F2F2F3; --hover:#EAEAEC; --line:#E6E6E9; --ink:#111113; --muted:#6A6A72; --faint:#9D9DA6;
+  --btn:#111113; --btn-ink:#FFFFFF;
+  --boss:#2F4FC4; --cand:#A9531F; --other:#5B6B73;
+  --good:#1E7A4C; --warn:#9A6A10; --bad:#B3362C;
   --body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
-  --r:20px; color-scheme:dark;
+  color-scheme:light;
 }
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111113; --panel:#18181B; --sunk:#202024; --hover:#28282D; --line:#2A2A2F; --ink:#EDEDEF; --muted:#9A9AA3; --faint:#6C6C75;
+  --btn:#EDEDEF; --btn-ink:#111113;
+  --boss:#8FA6FF; --cand:#E6A07A; --other:#9FB0B8;
+  --good:#5CC48D; --warn:#E0B055; --bad:#EF7B71; color-scheme:dark}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{-webkit-text-size-adjust:100%;background:var(--bg)}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);min-height:100vh;-webkit-font-smoothing:antialiased}
-body::before{content:"";position:fixed;inset:-20vh -10vw auto;height:70vh;z-index:-1;pointer-events:none;
-  background:radial-gradient(40% 50% at 20% 30%,rgba(139,108,255,.16),transparent 70%),radial-gradient(35% 45% at 80% 20%,rgba(255,95,162,.10),transparent 70%)}
-a{color:var(--accent)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 var(--body);min-height:100vh;-webkit-font-smoothing:antialiased}
+a{color:inherit}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 h1,h2,h3{margin:0;text-wrap:balance}
 p{margin:0}
 
-/* шапка */
-.top{position:sticky;top:0;z-index:30;background:rgba(14,14,19,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
-.top-in{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px max(16px,env(safe-area-inset-right)) 12px max(16px,env(safe-area-inset-left));flex-wrap:wrap}
-.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);margin-right:auto}
-.logo{width:34px;height:34px;border-radius:50%;flex:none;background:conic-gradient(from 0deg,var(--violet),var(--pink),var(--orange),var(--accent),var(--cyan),var(--violet));position:relative;animation:rot 12s linear infinite}
-.logo::after{content:"";position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),radial-gradient(circle at 60% 70%,rgba(14,14,19,.25),transparent 60%)}
-@keyframes rot{to{transform:rotate(360deg)}}
-.brand-t{display:grid;line-height:1.05}
-.brand-t b{font:700 18px/1.1 var(--brand);letter-spacing:-.01em}
-.brand-t span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
-.nav{display:flex;gap:4px;background:var(--panel);border-radius:99px;padding:4px}
-.nav a{padding:8px 16px;border-radius:99px;font-weight:600;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.top{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 90%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.top-in{max-width:880px;margin:0 auto;display:flex;align-items:center;gap:20px;padding:14px max(20px,env(safe-area-inset-right)) 14px max(20px,env(safe-area-inset-left));flex-wrap:wrap}
+.brand{font-weight:700;font-size:17px;letter-spacing:-.01em;text-decoration:none;margin-right:auto}
+.nav{display:flex;gap:18px}
+.nav a{font-size:14px;color:var(--muted);text-decoration:none;font-weight:500;padding:2px 0;border-bottom:1.5px solid transparent}
 .nav a:hover{color:var(--ink)}
-.nav a.on{background:var(--ink);color:var(--bg)}
-.engine{display:inline-flex;align-items:center;gap:8px;border:0;background:var(--panel);border-radius:99px;padding:8px 14px;font-size:12.5px;color:var(--muted);cursor:pointer;max-width:100%;text-align:left}
-.engine i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
-.engine.ready i{background:var(--good);box-shadow:0 0 10px var(--good)} .engine.loading i,.engine.busy i{background:var(--accent);animation:blink 1s steps(2) infinite} .engine.error i{background:var(--bad)}
-.recbar{position:sticky;top:63px;z-index:29;background:linear-gradient(90deg,var(--pink),var(--orange));color:#fff;display:flex;justify-content:center;gap:12px;align-items:center;padding:9px 16px;font-size:14px;font-weight:700}
-.recbar i{width:9px;height:9px;border-radius:50%;background:#fff;animation:blink 1s steps(2) infinite}
-.recbar a{color:#fff}
+.nav a.on{color:var(--ink);border-bottom-color:var(--ink)}
+.engine{display:inline-flex;align-items:center;gap:7px;border:0;background:none;padding:0;font-size:12.5px;color:var(--faint);cursor:pointer;text-align:left}
+.engine i{width:6px;height:6px;border-radius:50%;background:var(--faint);flex:none}
+.engine.ready i{background:var(--good)} .engine.loading i,.engine.busy i{background:var(--ink);animation:blink 1s steps(2) infinite} .engine.error i{background:var(--bad)}
+.recbar{position:sticky;top:53px;z-index:29;background:var(--ink);color:var(--bg);display:flex;justify-content:center;gap:12px;align-items:center;padding:8px 16px;font-size:13.5px;font-weight:500}
+.recbar i{width:8px;height:8px;border-radius:50%;background:var(--bad);animation:blink 1s steps(2) infinite}
+.recbar a{color:var(--bg)}
 
-main{max-width:1160px;margin:0 auto;padding:26px max(16px,env(safe-area-inset-right)) 80px max(16px,env(safe-area-inset-left))}
-.view{display:grid;gap:18px;min-width:0}
-.card{background:var(--panel);border-radius:var(--r);min-width:0}
-.pad{padding:22px}
-.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:18px 22px 6px}
-.card-h h2{font:700 18px var(--body)}
-.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
-.page-h h1{font:800 34px/1.1 var(--body);letter-spacing:-.02em}
-.h2{font:700 22px/1.2 var(--body);letter-spacing:-.01em}
+main{max-width:880px;margin:0 auto;padding:32px max(20px,env(safe-area-inset-right)) 80px max(20px,env(safe-area-inset-left))}
+.view{display:grid;gap:20px;min-width:0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;min-width:0}
+.pad{padding:20px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:16px 20px;border-bottom:1px solid var(--line)}
+.card-h h2{font-size:15px;font-weight:600}
+.page-h{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.page-h h1{font-size:26px;font-weight:700;letter-spacing:-.02em}
 .lbl{font-size:12.5px;color:var(--muted)}
-.muted{color:var(--muted)}
-.faint{color:var(--faint)}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .stack{display:grid;gap:12px}
-.spacer{flex:1}
-.hr{height:1px;background:var(--line);margin:0 22px}
 
-/* кнопки и поля */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:var(--panel2);padding:10px 18px;border-radius:99px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;color:var(--ink);white-space:nowrap;line-height:1.3;transition:background .15s,transform .1s}
-.btn:hover:not(:disabled){background:var(--hover)}
-.btn:active:not(:disabled){transform:scale(.97)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);background:var(--panel);padding:8px 15px;border-radius:9px;font-weight:500;font-size:14px;cursor:pointer;text-decoration:none;color:var(--ink);white-space:nowrap;line-height:1.3}
+.btn:hover:not(:disabled){background:var(--sunk)}
 .btn:disabled{opacity:.4;cursor:default}
-.btn.primary{background:var(--accent);color:var(--accent-ink)}
-.btn.primary:hover:not(:disabled){background:#FFE066}
-.btn.big{padding:14px 26px;font-size:16px;font-weight:700}
-.btn.sm{padding:6px 12px;font-size:13px}
-.btn.ghost{background:transparent}
-.btn.ghost:hover:not(:disabled){background:var(--panel2)}
+.btn.primary{background:var(--btn);border-color:var(--btn);color:var(--btn-ink)}
+.btn.primary:hover:not(:disabled){opacity:.88;background:var(--btn)}
+.btn.big{padding:11px 20px;font-size:15px}
+.btn.sm{padding:5px 11px;font-size:13px}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover:not(:disabled){background:var(--sunk)}
 .btn.danger{color:var(--bad)}
-.btn.armed{background:var(--bad);color:#fff}
-.btn svg{width:18px;height:18px;flex:none}
+.btn.armed{background:var(--bad);border-color:var(--bad);color:#fff}
+.link{background:none;border:0;padding:0;color:var(--muted);text-decoration:underline;text-underline-offset:3px;cursor:pointer;font-size:13px}
+.link:hover{color:var(--ink)}
 .field{display:grid;gap:6px;min-width:0}
-.field>span{font-size:12.5px;color:var(--muted);font-weight:500}
-input[type=text],input[type=password],input[type=search],input:not([type]),select,textarea{width:100%;border:1px solid transparent;background:var(--panel2);border-radius:14px;padding:12px 14px;font-size:15px;min-width:0;color:var(--ink)}
+.field>span{font-size:12.5px;color:var(--muted)}
+input[type=text],input[type=password],input[type=search],input:not([type]),select,textarea{width:100%;border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:9px 12px;font-size:15px;min-width:0;color:var(--ink)}
 input::placeholder,textarea::placeholder{color:var(--faint)}
-textarea{resize:vertical;min-height:90px;line-height:1.45}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--line2);background:var(--hover)}
-select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
-.check{display:inline-flex;gap:9px;align-items:center;font-size:14px;cursor:pointer;color:var(--muted)}
-.check input{width:18px;height:18px;accent-color:var(--accent)}
+textarea{resize:vertical;min-height:80px;line-height:1.45}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ink)}
+.check{display:inline-flex;gap:8px;align-items:center;font-size:14px;cursor:pointer;color:var(--muted)}
+.check input{width:16px;height:16px;accent-color:var(--ink)}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
-.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;background:var(--panel2);font-size:14px}
-.note.warn{background:var(--warn-soft)} .note.good{background:var(--good-soft)} .note.bad{background:var(--bad-soft)} .note.info{background:var(--info-soft)}
-.note .ico{flex:none;width:20px;height:20px;margin-top:1px}
-.note.warn .ico{color:var(--warn)} .note.good .ico{color:var(--good)} .note.bad .ico{color:var(--bad)} .note.info .ico{color:var(--info)}
-.note p+p{margin-top:6px}
-.note a{color:var(--ink);font-weight:600}
-.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:99px;background:var(--panel2);color:var(--muted);white-space:nowrap}
-.chip.good{background:var(--good-soft);color:var(--good)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.info{background:var(--info-soft);color:var(--info)} .chip.acc{background:var(--accent-soft);color:var(--accent)}
-.bar{height:6px;border-radius:99px;background:var(--panel2);overflow:hidden}
-.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--pink),var(--orange));width:0;transition:width .5s}
-.empty{padding:36px 22px;text-align:center;color:var(--muted);display:grid;gap:12px;justify-items:center}
-.empty b{color:var(--ink);font-size:18px}
+.note{display:flex;gap:10px;align-items:flex-start;padding:11px 14px;border-radius:10px;background:var(--sunk);font-size:14px}
+.note .ico{flex:none;width:18px;height:18px;margin-top:1px;color:var(--muted)}
+.note.warn .ico{color:var(--warn)} .note.good .ico{color:var(--good)} .note.bad .ico{color:var(--bad)}
+.note p+p{margin-top:4px}
+.note a{font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500;padding:2px 9px;border-radius:99px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.chip.good{color:var(--good)} .chip.warn{color:var(--warn)} .chip.bad{color:var(--bad)}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor}
+.bar{height:4px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink);width:0;transition:width .4s}
+.empty{padding:36px 20px;text-align:center;color:var(--muted);display:grid;gap:8px;justify-items:center}
+.empty b{color:var(--ink);font-size:16px;font-weight:600}
 @keyframes blink{50%{opacity:.25}}
 @keyframes spin{to{transform:rotate(360deg)}}
-.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;flex:none}
-.av{width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.35)}
-.av.lg{width:72px;height:72px;font-size:24px}
+.spin{width:14px;height:14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;flex:none}
 
-/* главная */
-.hero{position:relative;overflow:hidden;border-radius:28px;background:#101016;min-height:300px;display:grid;align-items:end}
-.hero canvas{position:absolute;inset:0;width:100%;height:100%}
-.hero-in{position:relative;padding:34px;display:grid;gap:16px;max-width:620px}
-.hero h1{font:800 40px/1.05 var(--body);letter-spacing:-.025em}
-.hero p{font-size:16px;color:#D9D9E3;max-width:46ch}
-.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.step{background:var(--panel);border-radius:18px;padding:16px;display:grid;gap:8px;align-content:start}
-.step .n{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.step .n span{font:700 11px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-.step b{font-size:15px}
-.step p{font-size:13px;color:var(--muted)}
-.step .btn{justify-self:start}
-.dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}
-.dot.ok{background:var(--good);box-shadow:0 0 10px var(--good)} .dot.wait{background:var(--warn)}
-.list{display:grid;gap:4px}
-.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 14px;border-radius:18px;text-decoration:none;color:inherit;transition:background .15s}
-.item:hover{background:var(--panel2)}
-.item h3{font-size:16px;font-weight:700}
+/* список */
+.list{display:grid}
+.item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 20px;text-decoration:none;color:inherit;border-top:1px solid var(--line)}
+.item:first-child{border-top:0}
+.item:hover{background:var(--sunk)}
+.item h3{font-size:15px;font-weight:600}
+.item h3 span{color:var(--muted);font-weight:400}
 .item p{font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.item .meta{font:12px var(--mono);color:var(--faint);margin-top:2px}
-.item-r{display:grid;gap:6px;justify-items:end}
+.item-r{display:grid;gap:4px;justify-items:end}
+.item .meta{font:12px var(--mono);color:var(--faint)}
+.foot{display:flex;gap:8px 16px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
 
 /* запись */
-.stage{position:relative;overflow:hidden;border-radius:28px;background:#0B0B10;min-height:420px;display:grid;place-items:center}
-.stage canvas{position:absolute;inset:0;width:100%;height:100%}
-.stage-in{position:relative;display:grid;justify-items:center;gap:14px;padding:30px 20px;text-align:center}
-.recbtn{width:132px;height:132px;border-radius:50%;border:0;background:rgba(255,255,255,.96);color:#111;display:grid;place-items:center;cursor:pointer;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.45);transition:transform .15s}
-.recbtn:hover{transform:scale(1.04)}
-.recbtn svg{width:46px;height:46px}
-.recbtn.on{background:#fff;color:var(--bad)}
-.recbtn:disabled{opacity:.6;cursor:wait}
-.rec-time{font:500 44px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.5)}
-.rec-hint{font-size:15px;color:#E6E6EE;text-shadow:0 1px 10px rgba(0,0,0,.6);max-width:44ch}
-.stage-foot{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 20px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
-.stage-foot .lbl{color:#D0D0DA}
-.draft{padding:12px 22px 18px;color:var(--faint);font-size:14px;font-style:italic}
-.import{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:18px 22px;border:1.5px dashed var(--line2);background:transparent}
-.import.drag{border-color:var(--accent);background:var(--accent-soft)}
-.import h3{font-size:16px}
-.import p{font-size:13.5px;color:var(--muted)}
+.rec{display:grid;justify-items:center;gap:14px;padding:40px 20px 28px;text-align:center}
+.recbtn{width:96px;height:96px;border-radius:50%;border:0;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center;cursor:pointer;transition:transform .12s}
+.recbtn:hover{transform:scale(1.03)}
+.recbtn svg{width:34px;height:34px}
+.recbtn.on{background:var(--bad);color:#fff}
+.recbtn:disabled{opacity:.5;cursor:wait}
+.rec-time{font:500 34px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rec-hint{font-size:14px;color:var(--muted);max-width:44ch}
+.level{width:min(280px,80%);height:4px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.level i{display:block;height:100%;width:0;background:var(--ink);transition:width .08s}
+.rec-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line)}
+.draft{padding:10px 20px 16px;color:var(--faint);font-size:14px;font-style:italic;border-top:1px dashed var(--line)}
+.drop{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:14px 20px;border:1px dashed var(--line);border-radius:14px;font-size:14px;color:var(--muted)}
+.drop.drag{border-color:var(--ink);background:var(--sunk)}
 
 /* расшифровка */
-.transcript{padding:6px 22px 18px;display:grid;min-width:0}
-.turn{display:grid;grid-template-columns:60px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.transcript{padding:4px 20px 16px;display:grid;min-width:0}
+.turn{display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;padding:12px 0;border-bottom:1px solid var(--line)}
 .turn:last-child{border-bottom:0}
-.ts{font:12px var(--mono);color:var(--faint);background:none;border:0;padding:4px 0 0;text-align:left;cursor:pointer;align-self:start}
-.ts:hover{color:var(--accent)}
-.tb{min-width:0;display:grid;gap:4px}
-.spk{font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center}
-.spk select{width:auto;padding:3px 28px 3px 10px;border-radius:99px;font-size:13px;font-weight:700;background-color:var(--panel2);cursor:pointer;background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%}
+.ts{font:12px var(--mono);color:var(--faint);background:none;border:0;padding:3px 0 0;text-align:left;cursor:pointer;align-self:start}
+.ts:hover{color:var(--ink)}
+.tb{min-width:0;display:grid;gap:2px}
+.spk{font-size:13px;font-weight:600;display:flex;gap:8px;align-items:center}
+.spk select{width:auto;padding:0 18px 0 0;border:0;background:transparent;font-size:13px;font-weight:600;cursor:pointer;appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 8px) 55%,calc(100% - 4px) 55%;background-size:4px 4px;background-repeat:no-repeat}
 .turn[data-spk=boss] .spk,.turn[data-spk=boss] .spk select{color:var(--boss)}
 .turn[data-spk=cand] .spk,.turn[data-spk=cand] .spk select{color:var(--cand)}
 .turn[data-spk=other] .spk,.turn[data-spk=other] .spk select{color:var(--other)}
 .turn[data-spk="?"] .spk{color:var(--faint)}
-.turn[data-spk=boss] .spk select{background-color:var(--boss-soft)} .turn[data-spk=cand] .spk select{background-color:var(--cand-soft)} .turn[data-spk=other] .spk select{background-color:var(--other-soft)}
-.unsure{font-size:11.5px;font-weight:700;color:var(--warn);background:var(--warn-soft);padding:2px 9px;border-radius:99px}
-.txt{overflow-wrap:anywhere;font-size:15.5px;line-height:1.6;color:#E9E9F0}
-.seg{border-radius:5px;transition:background .2s;cursor:text}
-.seg.now{background:rgba(255,212,59,.18);color:#fff}
-mark{background:rgba(255,212,59,.3);color:#fff;border-radius:3px;padding:0 1px}
-.editrow{display:grid;grid-template-columns:60px 150px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
-.editrow select{padding:7px 30px 7px 12px;font-size:13px}
-.editrow .txt{padding:6px 10px;border-radius:10px;background:var(--panel2);outline:none}
-.editrow .txt:focus{background:var(--hover);box-shadow:0 0 0 2px var(--line2)}
+.unsure{font-size:11.5px;font-weight:500;color:var(--warn)}
+.txt{overflow-wrap:anywhere;font-size:15.5px;line-height:1.65}
+.seg{border-radius:3px;transition:background .2s}
+.seg.now{background:var(--hover)}
+.seg.fixed{text-decoration:underline dotted var(--faint);text-underline-offset:4px}
+mark{background:#FFE58A;color:#111;border-radius:2px;padding:0 1px}
+.editrow{display:grid;grid-template-columns:52px 140px minmax(0,1fr);gap:12px;padding:8px 0;border-bottom:1px solid var(--line);align-items:start}
+.editrow select{padding:5px 8px;font-size:13px}
+.editrow .txt{padding:5px 8px;border-radius:8px;background:var(--sunk);outline:none}
+.editrow .txt:focus{box-shadow:0 0 0 1.5px var(--ink)}
 
 /* собеседование */
-.ihead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;padding:22px;align-items:center}
-.ihead .titles{display:grid;gap:2px;min-width:0}
-.ihead input.ttl,.ihead input.sub{background:transparent;border:1px solid transparent;border-radius:10px;padding:2px 8px;margin-left:-9px;width:100%}
-.ihead input.ttl{font:800 26px/1.2 var(--body);letter-spacing:-.015em}
+.ihead{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:16px;padding:20px;align-items:start}
+.titles{display:grid;gap:2px;min-width:0}
+.ihead input.ttl,.ihead input.sub{background:transparent;border:1px solid transparent;border-radius:7px;padding:1px 6px;margin-left:-7px;width:100%}
+.ihead input.ttl{font-size:22px;font-weight:700;letter-spacing:-.015em}
 .ihead input.sub{font-size:15px;color:var(--muted)}
-.ihead input.ttl:hover,.ihead input.sub:hover{border-color:var(--line2)}
-.ihead input.ttl:focus,.ihead input.sub:focus{background:var(--panel2);border-color:var(--line2)}
-.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px;align-items:center}
-.meta b{color:var(--ink);font-weight:600}
+.ihead input.ttl:hover,.ihead input.sub:hover{border-color:var(--line)}
+.ihead input.ttl:focus,.ihead input.sub:focus{border-color:var(--ink)}
+.meta{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px;align-items:center}
 .actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .menu{position:relative}
 .menu summary{list-style:none}
 .menu summary::-webkit-details-marker{display:none}
-.menu .pop{position:absolute;right:0;top:calc(100% + 8px);z-index:25;background:var(--panel2);border-radius:16px;padding:6px;min-width:260px;box-shadow:0 18px 50px rgba(0,0,0,.55);display:grid}
-.menu .pop button{border:0;background:none;text-align:left;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px}
-.menu .pop button:hover:not(:disabled){background:var(--hover)}
+.menu .pop{position:absolute;right:0;top:calc(100% + 6px);z-index:25;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px;min-width:250px;box-shadow:0 12px 32px rgba(0,0,0,.12);display:grid}
+.menu .pop button{border:0;background:none;text-align:left;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+.menu .pop button:hover:not(:disabled){background:var(--sunk)}
 .menu .pop button:disabled{opacity:.4}
-.saved{display:flex;gap:14px;flex-wrap:wrap;padding:12px 22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);align-items:center}
+.saved{display:flex;gap:6px 16px;flex-wrap:wrap;padding:10px 20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);align-items:center}
 .saved span{display:inline-flex;gap:6px;align-items:center}
-.saved i{width:7px;height:7px;border-radius:50%;background:var(--good)}
+.saved i{width:6px;height:6px;border-radius:50%;background:var(--good)}
 .saved i.off{background:var(--faint)}
-/* плеер */
-.player{position:sticky;top:72px;z-index:20;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 18px;background:rgba(26,26,34,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
-.play{width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center;cursor:pointer}
-.play svg{width:20px;height:20px}
-.ptime{font:13px var(--mono);color:var(--muted);white-space:nowrap}
+.player{position:sticky;top:62px;z-index:20;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:14px;align-items:center;padding:10px 16px}
+.play{width:36px;height:36px;border-radius:50%;border:0;background:var(--btn);color:var(--btn-ink);display:grid;place-items:center;cursor:pointer}
+.play svg{width:16px;height:16px}
+.ptime{font:12.5px var(--mono);color:var(--muted);white-space:nowrap}
 .ptime b{color:var(--ink);font-weight:500}
-.tl{position:relative;height:34px;cursor:pointer;min-width:0}
-.tl-bg{position:absolute;left:0;right:0;top:13px;height:8px;border-radius:99px;background:var(--panel2);overflow:hidden}
-.tl-bg i{position:absolute;top:0;bottom:0;border-radius:2px;opacity:.9}
-.tl-prog{position:absolute;left:0;top:11px;height:12px;width:2px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.8);transform:translateX(-1px)}
-.tl-legend{display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
-.tl-legend span{display:inline-flex;gap:6px;align-items:center}
-.tl-legend i{width:10px;height:10px;border-radius:3px}
-.speed{display:inline-flex;background:var(--panel2);border-radius:99px;padding:3px}
-.speed button{border:0;background:none;padding:5px 10px;font:500 12px var(--mono);cursor:pointer;color:var(--muted);border-radius:99px}
-.speed button.on{background:var(--ink);color:var(--bg)}
-.subtabs{display:flex;gap:6px;padding:14px 18px 0;overflow-x:auto;scrollbar-width:none}
-.subtabs button{border:0;background:transparent;padding:9px 16px;font-weight:700;font-size:14.5px;color:var(--muted);cursor:pointer;border-radius:99px;white-space:nowrap}
-.subtabs button:hover{color:var(--ink)}
-.subtabs button.on{background:var(--ink);color:var(--bg)}
-.subtabs .cnt{font:600 11px var(--mono);background:var(--warn-soft);color:var(--warn);padding:1px 7px;border-radius:99px;margin-left:5px}
-.subtabs button.on .cnt{background:var(--warn);color:var(--bg)}
-.how{margin:14px 22px 0;padding:12px 16px;border-radius:14px;background:var(--bg2);font-size:13px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
-.how b{color:var(--ink)}
+.tl{position:relative;height:28px;cursor:pointer;min-width:0}
+.tl-bg{position:absolute;left:0;right:0;top:11px;height:6px;border-radius:99px;background:var(--sunk);overflow:hidden}
+.tl-bg i{position:absolute;top:0;bottom:0;opacity:.55}
+.tl-prog{position:absolute;left:0;top:7px;height:14px;width:2px;background:var(--ink);border-radius:2px;transform:translateX(-1px)}
+.speed{display:inline-flex;gap:2px}
+.speed button{border:0;background:none;padding:4px 7px;font:500 12px var(--mono);cursor:pointer;color:var(--faint);border-radius:6px}
+.speed button.on{color:var(--ink);background:var(--sunk)}
+.tabs{display:flex;gap:22px;padding:0 20px;border-bottom:1px solid var(--line)}
+.tabs button{border:0;background:none;padding:14px 0 12px;font-weight:600;font-size:14.5px;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs .cnt{font:500 11px var(--mono);color:var(--warn);margin-left:4px}
 
-/* анализ */
-.verdict{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;padding:24px 22px;align-items:center}
-.ring{width:132px;height:132px;position:relative;flex:none}
-.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center;align-content:center}
-.ring .v b{font:800 36px/1 var(--body)}
-.ring .v small{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
-.dec{font:800 28px/1.1 var(--body);letter-spacing:-.015em}
-.v-good .dec{color:var(--good)} .v-warn .dec{color:var(--warn)} .v-bad .dec{color:var(--bad)}
-.one{font-size:18px;font-weight:600;margin-top:6px;line-height:1.35}
-.sum{font-size:15px;color:#D6D6E0;line-height:1.6;margin-top:8px}
-.sec{padding:20px 22px;display:grid;gap:14px;align-content:start}
-.sec+.sec,.cols+.sec,.sec+.cols,.cols+.cols{border-top:1px solid var(--line)}
-.sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:800;display:flex;justify-content:space-between;gap:8px;align-items:center}
-.sec h3 span{letter-spacing:0;text-transform:none;font-weight:600;color:var(--muted)}
-.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
-.cols>.sec+.sec{border-top:0;border-left:1px solid var(--line)}
-.pts{list-style:none;margin:0;padding:0;display:grid;gap:14px}
-.pts li{display:grid;gap:4px;padding-left:16px;position:relative}
-.pts li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;background:var(--c,var(--faint))}
-.pts.good li::before{background:var(--good)} .pts.bad li::before{background:var(--bad)} .pts.warn li::before{background:var(--warn)} .pts.info li::before{background:var(--info)} .pts.acc li::before{background:var(--accent)}
-.pts b{font-weight:600}
-.quote{font-size:13.5px;color:var(--muted);font-style:italic}
-.tsb{font:500 11.5px var(--mono);font-style:normal;background:var(--panel2);border:0;border-radius:99px;padding:2px 9px;margin-left:6px;cursor:pointer;color:var(--accent);vertical-align:1px}
-.tsb:hover{background:var(--hover)}
-.sev{font-size:11px;font-weight:800;padding:2px 9px;border-radius:99px;margin-left:8px;vertical-align:1px}
-.sev.h{background:var(--bad-soft);color:var(--bad)} .sev.m{background:var(--warn-soft);color:var(--warn)} .sev.l{background:var(--panel2);color:var(--muted)}
-.comp{display:grid;gap:16px}
-.comp-row{display:grid;grid-template-columns:minmax(140px,230px) 120px minmax(0,1fr);gap:16px;align-items:start}
-.dots{display:flex;gap:4px;padding-top:7px}
-.dots i{width:18px;height:8px;border-radius:99px;background:var(--panel2)}
-.dots.s1 i.on,.dots.s2 i.on{background:var(--bad)} .dots.s3 i.on{background:var(--warn)} .dots.s4 i.on,.dots.s5 i.on{background:var(--good)}
-.facts{display:grid;grid-template-columns:minmax(120px,auto) minmax(0,1fr);gap:10px 18px;margin:0;font-size:14.5px}
-.facts dt{color:var(--muted);font-size:13.5px}
-.facts dd{margin:0}
-.fq{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:q}
-.fq li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;counter-increment:q}
-.fq li::before{content:counter(q);font:700 12px var(--mono);color:var(--accent-ink);background:var(--accent);border-radius:99px;text-align:center;padding:3px 0}
-.fq small{display:block;color:var(--muted);font-size:12.5px}
-.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:20px 22px}
-.tile{background:var(--bg2);border-radius:16px;padding:14px 16px;display:grid;gap:4px}
-.tile small{font-size:12px;color:var(--muted)}
-.tile b{font:700 24px/1.1 var(--body);font-variant-numeric:tabular-nums}
-.tile em{font-style:normal;font-size:12px;color:var(--faint)}
-.meter{display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--panel2);gap:2px}
-.meter i{display:block;height:100%}
-.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px}
-.legend span{display:inline-flex;gap:7px;align-items:center}
-.legend i{width:10px;height:10px;border-radius:3px}
-.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.kv>div{background:var(--bg2);border-radius:14px;padding:14px;display:grid;gap:3px}
-.kv b{font:700 20px var(--body)}
-.kv small{font-size:12.5px;color:var(--muted)}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chips span{font-size:13px;padding:4px 12px;border-radius:99px;background:var(--panel2);color:#DADAE4;font-weight:500}
-.chips span em{font-style:normal;font-family:var(--mono);color:var(--faint);margin-left:6px;font-size:11px}
-.prose{font-size:14.5px;line-height:1.6;display:grid;gap:8px}
-.qa{display:grid;gap:10px;padding:16px 18px 20px}
-.qa-card{background:var(--bg2);border-radius:18px;padding:16px 18px;display:grid;gap:10px}
-.qa-q{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
-.qa-q b{color:var(--boss);font-size:15px}
-.qa-a{font-size:14.5px;color:#DCDCE6;line-height:1.55}
-.qa-a.clip{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-.qa-f{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}
-.rate{font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;white-space:nowrap}
-.rate.strong{background:var(--good-soft);color:var(--good)} .rate.mid{background:var(--warn-soft);color:var(--warn)} .rate.weak{background:var(--bad-soft);color:var(--bad)}
-.aiq{font-size:13.5px;padding:10px 12px;border-radius:12px;background:var(--panel);display:flex;gap:10px;align-items:flex-start}
-.aiq .rate{flex:none}
-.stepsAI{display:grid;gap:16px;counter-reset:st}
-.stepsAI>div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;counter-increment:st}
-.stepsAI>div::before{content:counter(st);width:32px;height:32px;border-radius:50%;background:var(--panel2);color:var(--ink);font-weight:800;display:grid;place-items:center;font-size:14px}
-.ai-cta{padding:26px 22px;display:grid;gap:16px;position:relative;overflow:hidden}
-.ai-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 100% 0%,rgba(139,108,255,.20),transparent 60%),radial-gradient(50% 100% at 0% 100%,rgba(255,95,162,.12),transparent 60%);pointer-events:none}
-.ai-cta>*{position:relative}
+/* пять блоков анализа */
+.blk{padding:20px;border-top:1px solid var(--line);display:grid;gap:10px}
+.blk:first-child{border-top:0}
+.blk-h{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.blk-h h3{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.blk-h small{font-size:12px;color:var(--faint)}
+.verdict{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.verdict b{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.verdict .sc{font:500 15px var(--mono);color:var(--muted)}
+.v-good b{color:var(--good)} .v-warn b{color:var(--warn)} .v-bad b{color:var(--bad)}
+.lead{font-size:15.5px;line-height:1.6}
+.pts{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.pts li{display:grid;gap:2px;padding-left:16px;position:relative;font-size:15px}
+.pts li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.pts.good li::before{background:var(--good)} .pts.bad li::before{background:var(--bad)}
+.quote{font-size:13.5px;color:var(--muted)}
+.tag{font-size:11.5px;font-weight:500;color:var(--bad);margin-left:6px}
+.tsb{font:500 11.5px var(--mono);background:none;border:0;padding:0;margin-left:6px;cursor:pointer;color:var(--faint);text-decoration:underline;text-underline-offset:2px}
+.tsb:hover{color:var(--ink)}
+.dots{display:inline-flex;gap:3px;vertical-align:middle}
+.dots i{width:14px;height:5px;border-radius:99px;background:var(--hover)}
+.dots i.on{background:var(--ink)}
+.kv{display:flex;gap:8px 22px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.kv b{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:14px}
+.cta{padding:20px;border-top:1px solid var(--line);display:grid;gap:14px;background:var(--sunk);border-radius:0 0 14px 14px}
+.cta details summary{cursor:pointer;font-weight:600;font-size:14px}
+.steps{display:grid;gap:12px;counter-reset:st;margin-top:4px}
+.steps>div{display:grid;grid-template-columns:24px minmax(0,1fr);gap:10px;counter-increment:st;align-items:start}
+.steps>div::before{content:counter(st);width:22px;height:22px;border-radius:50%;border:1px solid var(--line);background:var(--panel);font-size:12px;font-weight:600;display:grid;place-items:center}
 
 /* настройки */
-.set{display:grid;gap:16px;padding:24px}
-.set h2{font:700 20px var(--body)}
-.set>p{font-size:14.5px;color:var(--muted);max-width:72ch}
-.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.opt{display:grid;gap:4px;padding:14px 16px;border-radius:16px;cursor:pointer;position:relative;background:var(--panel2);border:1.5px solid transparent}
-.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.set{display:grid;gap:14px;padding:22px}
+.set h2{font-size:17px;font-weight:600}
+.set>p{font-size:14px;color:var(--muted);max-width:68ch}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.opt{display:grid;gap:3px;padding:12px 14px;border-radius:10px;cursor:pointer;position:relative;border:1px solid var(--line)}
+.opt:has(input:checked){border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
 .opt input{position:absolute;opacity:0;pointer-events:none}
-.opt b{font-size:15px}
+.opt b{font-size:14px;font-weight:600}
 .opt span{font-size:12.5px;color:var(--muted)}
 .opt.dis{opacity:.45;cursor:not-allowed}
-.profile-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;padding:16px;border-radius:18px;background:var(--bg2)}
-.vp{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 30% 30%,var(--pink),var(--violet));color:#fff}
-.vp svg{width:26px;height:26px}
-.vp.off{background:var(--panel2);color:var(--faint)}
+.profile-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;align-items:center;padding:14px;border-radius:10px;background:var(--sunk)}
+.vp{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--btn);color:var(--btn-ink)}
+.vp svg{width:20px;height:20px}
+.vp.off{background:var(--hover);color:var(--faint)}
 
-#toasts{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:grid;gap:8px;width:min(560px,calc(100% - 32px))}
-.toast{background:var(--ink);color:var(--bg);padding:13px 18px;border-radius:16px;font-size:14px;font-weight:500;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:opacity .3s,transform .3s}
-.toast.warn{background:var(--warn);color:#1a1405} .toast.bad{background:var(--bad);color:#fff} .toast.good{background:var(--good);color:#06180d}
+#toasts{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:grid;gap:8px;width:min(520px,calc(100% - 32px))}
+.toast{background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:10px;font-size:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);transition:opacity .3s,transform .3s}
+.toast.bad{background:var(--bad);color:#fff}
 .toast.out{opacity:0;transform:translateY(8px)}
 #print{display:none}
-footer{max-width:1160px;margin:0 auto;padding:0 16px 40px;color:var(--faint);font-size:12.5px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+footer{max-width:880px;margin:0 auto;padding:0 20px 36px;color:var(--faint);font-size:12px}
 
-@media (max-width:980px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:860px){
-  .cols,.grid2,.grid3{grid-template-columns:1fr}
-  .cols>.sec+.sec{border-left:0;border-top:1px solid var(--line)}
-  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .opts{grid-template-columns:1fr}
-  .comp-row{grid-template-columns:1fr auto}.comp-row>div:last-child{grid-column:1/-1}
-  .kv{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .ihead{grid-template-columns:auto minmax(0,1fr)}.actions{grid-column:1/-1;justify-content:flex-start}
-  .verdict{grid-template-columns:1fr;justify-items:start}
-  .player{grid-template-columns:auto minmax(0,1fr);row-gap:8px}.player .tl{grid-column:1/-1;order:3}.player .speed{justify-self:end}
+@media (max-width:760px){
+  .grid2{grid-template-columns:1fr}
+  .opts{grid-template-columns:1fr!important}
+  .ihead{grid-template-columns:1fr}.actions{justify-content:flex-start}
+  .player{grid-template-columns:auto minmax(0,1fr) auto;row-gap:6px}.player .tl{grid-column:1/-1;order:3}
 }
-@media (max-width:560px){
-  .steps{grid-template-columns:1fr}
-  .hero h1{font-size:30px}.hero-in{padding:24px}
-  .page-h h1{font-size:28px}
-  .stage{min-height:360px}.recbtn{width:112px;height:112px}
-  .turn{grid-template-columns:1fr;gap:2px}
+@media (max-width:520px){
+  .turn{grid-template-columns:1fr;gap:0}
   .editrow{grid-template-columns:1fr}
-  .item{grid-template-columns:auto minmax(0,1fr)}.item-r{grid-column:2;justify-items:start}
+  .item{grid-template-columns:1fr}.item-r{justify-items:start;grid-auto-flow:column;justify-content:start;gap:10px}
   .top{position:static}.recbar{top:0}.player{top:0}
-  .nav a{padding:7px 12px;font-size:13px}
-  .ihead input.ttl{font-size:21px}
+  .page-h h1{font-size:22px}
 }
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media print{
   html,body{background:#fff;color:#000}
-  body::before{display:none}
   body>*:not(#print){display:none!important}
   #print{display:block;font-size:12px;color:#000}
-  #print *{color:#000!important;background:transparent!important;box-shadow:none!important}
   #print .card{border:1px solid #ccc;break-inside:avoid;margin-bottom:10px}
   #print button{display:none}
 }
@@ -380,13 +282,13 @@ footer{max-width:1160px;margin:0 auto;padding:0 16px 40px;color:var(--faint);fon
 <body>
 <header class="top">
   <div class="top-in">
-    <a class="brand" href="#home" aria-label="Grass Voice — на главную"><span class="logo" aria-hidden="true"></span><span class="brand-t"><b>Grass Voice</b><span>by AZBYYKA</span></span></a>
+    <a class="brand" href="#home">Grass Voice</a>
     <nav class="nav" aria-label="Разделы">
       <a href="#home" data-nav="home">Собеседования</a>
       <a href="#new" data-nav="new">Запись</a>
       <a href="#settings" data-nav="settings">Настройки</a>
     </nav>
-    <button class="engine" id="engine" type="button"><i></i><span id="engineText">Распознавание не запущено</span></button>
+    <button class="engine" id="engine" type="button"><i></i><span id="engineText"></span></button>
   </div>
 </header>
 <div class="recbar" id="recbar" hidden><i></i><span>Идёт запись · <b id="recbarTime">00:00</b></span><a href="#new">Открыть</a></div>
@@ -395,23 +297,22 @@ footer{max-width:1160px;margin:0 auto;padding:0 16px 40px;color:var(--faint);fon
   <section id="v-home" class="view" hidden></section>
 
   <section id="v-new" class="view" hidden>
-    <div class="card pad stack">
-      <div class="grid2">
-        <label class="field"><span>Кандидат</span><input id="nCand" type="text" placeholder="Имя и фамилия" autocomplete="off"></label>
-        <label class="field"><span>Вакансия</span><input id="nPos" type="text" placeholder="Например: менеджер по продажам" autocomplete="off"></label>
-      </div>
-      <div id="nProfile"></div>
+    <div class="page-h"><h1>Новая запись</h1></div>
+    <div class="grid2">
+      <label class="field"><span>Кандидат</span><input id="nCand" type="text" placeholder="Имя и фамилия" autocomplete="off"></label>
+      <label class="field"><span>Вакансия</span><input id="nPos" type="text" placeholder="Например: менеджер по продажам" autocomplete="off"></label>
     </div>
-    <div class="stage" id="stage">
-      <canvas id="wave" aria-hidden="true"></canvas>
-      <div class="stage-in">
+    <div id="nProfile"></div>
+    <div class="card">
+      <div class="rec">
         <button class="recbtn" id="recBtn" type="button" aria-label="Начать запись"><svg viewBox="0 0 24 24" fill="currentColor" id="recIco"></svg></button>
         <div class="rec-time" id="recTime">00:00</div>
-        <div class="rec-hint" id="recHint">Нажмите, чтобы начать запись собеседования</div>
+        <div class="level" aria-hidden="true"><i id="lvl"></i></div>
+        <div class="rec-hint" id="recHint">Нажмите, чтобы начать запись</div>
       </div>
-      <div class="stage-foot">
-        <span class="lbl" id="recQueue">Текст появляется после каждой паузы в речи, кусками по 10–25 секунд.</span>
-        <label class="check" style="color:#D0D0DA"><input type="checkbox" id="liveDraft"> Черновик текста сразу</label>
+      <div class="rec-foot">
+        <span class="lbl" id="recQueue">Текст появляется после пауз в речи, кусками по 10–25 секунд.</span>
+        <label class="check"><input type="checkbox" id="liveDraft"> Черновик сразу</label>
       </div>
     </div>
     <div class="card">
@@ -419,16 +320,14 @@ footer{max-width:1160px;margin:0 auto;padding:0 16px 40px;color:var(--faint);fon
       <div id="liveList" class="transcript"></div>
       <div id="draft" class="draft" hidden></div>
     </div>
-    <div class="card import" id="importZone">
-      <div><h3>Есть готовая запись собеседования?</h3><p>Перетащите сюда аудио или видео (MP3, M4A, WAV, MP4, WEBM) или выберите файл.</p></div>
-      <label class="btn"><input type="file" id="importFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Выбрать файл</label>
-    </div>
+    <div class="drop" id="importZone"><span>Есть готовая запись? Перетащите сюда аудио или видео.</span>
+      <label class="btn sm"><input type="file" id="importFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Выбрать файл</label></div>
   </section>
 
   <section id="v-int" class="view" hidden></section>
   <section id="v-settings" class="view" hidden></section>
 </main>
-<footer><span>Grass Voice by AZBYYKA</span><span>Звук и записи хранятся только на этом компьютере</span></footer>
+<footer>Grass Voice by AZBYYKA · записи хранятся только на этом компьютере</footer>
 <div id="toasts" aria-live="polite"></div>
 <div id="print"></div>
 
@@ -462,8 +361,6 @@ function flash(btn,text){const o=btn.dataset.f||btn.innerHTML;btn.dataset.f=o;bt
 const TR={а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"};
 const translit=t=>String(t||"").toLowerCase().split("").map(c=>TR[c]??c).join("").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 function hash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0}
-function avatar(name,cls=""){const h=hash(name||"?")%360,init=String(name||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
-  return`<span class="av ${cls}" style="background:radial-gradient(circle at 28% 25%,hsl(${h},95%,72%),transparent 55%),radial-gradient(circle at 75% 80%,hsl(${(h+70)%360},90%,60%),transparent 60%),hsl(${(h+30)%360},55%,38%)">${esc(init)}</span>`}
 const ICON={
   mic:'<path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/>',
   stop:'<rect x="6" y="6" width="12" height="12" rx="3"/>',
@@ -565,7 +462,7 @@ const Folder={
       if(audio||!rec.folderAudio){const a=await getAudio(rec);if(a){await this.write(dir,(this.unicode?"Запись.":"zapis.")+audioExt(a.type),a);rec.folderAudio=true}}
       rec.folderDir=name;rec.folderAt=Date.now();this.pending.delete(rec.id);
       await DB.put("recs",rec.id,rec);return true;
-    }catch(e){console.error(e);this.pending.add(rec.id);return false}
+    }catch(e){console.warn("Копия в папку не сохранилась:",e&&e.message);this.pending.add(rec.id);return false}
   },
   async syncAll(){const list=await allRecs();let n=0;for(const r of list){if(r.status==="ready"&&(!r.folderAt||r.updated>r.folderAt||this.pending.has(r.id))){if(await this.syncRec(r,{audio:!r.folderAudio}))n++}}if(n)toast(`Сохранено в папку «${this.name()}»: ${pl(n,"собеседование","собеседования","собеседований")}`,"good");refreshView()}
 };
@@ -1110,56 +1007,36 @@ function metrics(rec){
    ========================================================= */
 function transcriptText(rec){return turnsOf(rec).map(t=>`[${fmt(t.t0)}] ${spkName(rec,t.spk)}: ${t.text}`).join("\n")}
 function plainTranscript(rec){return`${recTitle(rec)}${rec.position?" · "+rec.position:""}\n${dateStr(rec.created)} · ${fmtLong(rec.duration)}\n\n`+transcriptText(rec)}
+const arr=x=>Array.isArray(x)?x:x?[x]:[];
 const SCHEMA=`{
-  "verdict": {
-    "decision": "нанимать | скорее да | под вопросом | скорее нет | не нанимать",
-    "score": 0-100,
-    "confidence": 0-100,
-    "one_line": "вывод одной фразой, до 15 слов",
-    "summary": "3–4 предложения: кто этот человек и почему такое решение",
-    "deciding_factors": ["3–5 главных причин решения, каждая до 15 слов"],
-    "hire_if": "что должно подтвердиться, чтобы нанять (или что точно помешает)"
-  },
-  "candidate": {"experience": "", "current_situation": "где сейчас и почему ищет", "salary": "ожидания или «не обсуждали»", "availability": "когда готов выйти", "facts": ["конкретные факты"]},
-  "answers": [{"question": "вопрос коротко", "t": "мм:сс", "rating": "сильный | средний | слабый", "why": "одно предложение: что было конкретно и чего не хватило"}],
-  "competencies": [{"name": "", "score": 1-5, "evidence": "дословная цитата до 15 слов", "t": "мм:сс", "comment": "почему такая оценка"}],
-  "strengths": [{"point": "", "quote": "", "t": "мм:сс"}],
-  "risks": [{"point": "", "severity": "высокий | средний | низкий", "quote": "", "t": "мм:сс", "how_to_check": "как проверить"}],
-  "red_flags": [{"point": "только серьёзные стоп-сигналы", "quote": "", "t": "мм:сс"}],
-  "inconsistencies": [{"point": "", "quotes": [{"text": "", "t": "мм:сс"}]}],
-  "evasions": [{"question": "", "what_happened": "", "t": "мм:сс"}],
-  "motivation": {"type": "к чему стремится / от чего бежит", "drivers": [""], "comment": ""},
-  "communication": {"summary": "", "observations": [""]},
-  "culture_fit": "",
-  "not_covered": ["важные темы, которые не обсудили"],
-  "followups": [{"question": "", "why": ""}],
-  "reference_checks": [""],
-  "interviewer_feedback": [{"point": "что улучшить в проведении собеседования", "t": "мм:сс"}],
-  "transcript_issues": ""
+  "verdict": {"decision": "нанимать | скорее да | под вопросом | скорее нет | не нанимать", "score": 0-100, "summary": "2–3 коротких предложения: кто он и почему такое решение"},
+  "knowledge": {"score": 1-5, "summary": "1–2 предложения: насколько разбирается в своей работе", "points": [{"text": "на чём это видно", "t": "мм:сс"}]},
+  "good": [{"point": "где ответил уверенно и по делу", "quote": "дословно, до 12 слов", "t": "мм:сс"}],
+  "bad": [{"point": "где ошибся, плавал или ушёл от ответа", "type": "ошибка | плавал | вода | ушёл от ответа | противоречие", "quote": "дословно, до 12 слов", "t": "мм:сс"}],
+  "speech": {"summary": "1–2 предложения: уверенно или с запинками, ясно ли формулирует, держит ли мысль"},
+  "fixes": [{"t": "мм:сс", "wrong": "как записано в расшифровке", "right": "как правильно"}]
 }`;
 function buildPrompt(rec){
   const m=metrics(rec),boss=S.bossName||"Босс",cand=rec.candidate||"Кандидат";
-  const system=`Ты — сильный директор по персоналу с опытом найма в малый и средний бизнес в России и образованием психолога. Ты разбираешь собеседование для руководителя, который сам его провёл и сейчас решает, брать ли человека. Ему нужен короткий, точный и честный разбор, а не эссе.
+  const system=`Ты — опытный руководитель, который сам много нанимает. Сделай короткий рабочий разбор собеседования для руководителя, который его провёл, и поправь ошибки автоматической расшифровки.
 
-Говорящие в расшифровке: «${boss}» — руководитель, проводит собеседование; «${cand}» — кандидат. Расшифровка автоматическая: в словах бывают ошибки, изредка реплика приписана не тому. Если по смыслу реплику явно сказал другой человек, считай её репликой того, кто сказал.
+Говорящие: «${boss}» — руководитель, проводит собеседование; «${cand}» — кандидат. Расшифровка автоматическая: бывают искажённые слова и изредка реплика приписана не тому человеку.
 
-Правила разбора:
-1. Только факты из разговора. Каждый вывод подкрепляй дословной цитатой (до 15 слов) и временем [мм:сс] из расшифровки. Не выдумывай того, чего не было.
-2. Оцени каждый содержательный вопрос руководителя и ответ на него: сильный — конкретика, цифры, личные действия и результат (ситуация → задача → действие → результат); средний — по делу, но без доказательств; слабый — общие слова, уход от ответа, противоречие.
-3. Ищи: противоречия между частями разговора, уходы от вопросов, заученные фразы, перекладывание ответственности, «мы» вместо «я», негатив о прошлых работодателях, нестыковки в датах и цифрах.
-4. Мотивация: к чему человек идёт и от чего уходит. Деньги, сроки выхода, ожидания — если не обсуждали, так и пиши.
-5. Решение: оценка 0–100 и вердикт. Если данных мало — снижай confidence и прямо пиши, чего не хватает. Не смягчай и не льсти.
-6. Пиши по-русски, просто и коротко: каждый пункт — одно-два предложения. Без канцелярита и воды. Не повторяй одно и то же в разных разделах.
-7. Дай руководителю честную обратную связь по проведению собеседования и конкретные вопросы для второй встречи.
+Что нужно:
+1. verdict — решение, балл 0–100 и 2–3 предложения, почему.
+2. knowledge — насколько кандидат разбирается в своей работе и в теме вакансии: точно ли говорит, понимает ли суть, приводит ли реальные примеры, где ошибся по существу. Оценка 1–5 и до 3 пунктов.
+3. good — до 5 мест, где кандидат ответил уверенно, конкретно и по делу.
+4. bad — до 5 мест, где он ошибся по существу, плавал, запинался, отвечал водой, ушёл от ответа или противоречил себе. Самое важное — первым.
+5. speech — как держится и говорит: уверенно или сбивчиво, ясно ли формулирует.
+6. fixes — явные ошибки распознавания: искажённые имена, названия компаний, профессиональные термины, бессмысленные слова. "wrong" — точно как написано в расшифровке, "right" — как должно быть по смыслу. Не меняй стиль речи и не исправляй то, в чём не уверен. До 40 правок.
 
-Ответ — строго один JSON-объект, без текста до и после, по схеме:
-${SCHEMA}
+Правила: только то, что действительно прозвучало. Каждый пункт — одно короткое предложение, без воды. Цитаты дословные, с временем [мм:сс] из расшифровки. Если данных мало — так и напиши и снижай оценку уверенности в summary.
 
-Компетенции (5–7) выбери под вакансию. Оценки 1–5: 1 — нет, 3 — средне, 5 — сильно. Пустые разделы возвращай пустыми массивами.`;
+Ответ — строго один JSON-объект без текста до и после:
+${SCHEMA}`;
   const user=`Вакансия: ${rec.position||"не указана"}
-${rec.req?"Что важно в кандидате (от руководителя):\n"+rec.req+"\n":""}${S.ai.context?"О компании:\n"+S.ai.context+"\n":""}
-Дата: ${dateStr(rec.created)}. Длительность: ${fmtLong(rec.duration)}.
-Метрики, посчитанные программой: ${boss} говорил ${Math.round(m.per.boss.sec/m.tot*100)} % времени, кандидат — ${Math.round(m.per.cand.sec/m.tot*100)} %. Вопросов от руководителя: ${m.bossQ}. Средний ответ кандидата: ${m.avgAns} слов. Слов-паразитов у кандидата: ${m.fill.toFixed(1)} на 100 слов. Вопросов от кандидата: ${m.candQ.length}.
+${rec.req?"Что важно в кандидате:\n"+rec.req+"\n":""}${S.ai.context?"О компании:\n"+S.ai.context+"\n":""}
+Длительность: ${fmtLong(rec.duration)}. ${boss} говорил ${Math.round(m.per.boss.sec/m.tot*100)} % времени, кандидат — ${Math.round(m.per.cand.sec/m.tot*100)} %.
 
 Расшифровка:
 ${transcriptText(rec)}`;
@@ -1167,12 +1044,26 @@ ${transcriptText(rec)}`;
 }
 function parseAI(text){
   let t=String(text||"").trim().replace(/^```(?:json)?/i,"").replace(/```\s*$/,"").trim();
-  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("В ответе нет анализа. Скопируйте ответ Claude целиком — он начинается с {.");
+  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("В ответе нет разбора. Скопируйте ответ Claude целиком — он начинается с {.");
   t=t.slice(a,b+1);
   let d;try{d=JSON.parse(t)}catch(e){try{d=JSON.parse(t.replace(/,\s*([}\]])/g,"$1").replace(/[“”]/g,'"'))}catch(e2){throw new Error("Ответ обрезан или повреждён. Скопируйте его целиком ещё раз (в claude.ai — кнопка «Копировать» под ответом).")}}
-  if(!d||typeof d!=="object"||!d.verdict)throw new Error("Это не похоже на анализ Grass Voice: нет раздела verdict.");
+  if(!d||typeof d!=="object"||!d.verdict)throw new Error("Это не похоже на разбор Grass Voice: нет итога (verdict).");
   return d;
 }
+function applyFixes(rec,fixes){
+  let n=0;
+  arr(fixes).forEach(f=>{
+    const w=String(f&&f.wrong||"").trim(),r=String(f&&f.right||"").trim();if(!w||!r||w===r)return;
+    const N=x=>x.toLowerCase().replace(/ё/g,"е"),t=parseTs(f.t),lw=N(w);
+    const c=rec.segs.map(s=>({s,d:t==null?0:Math.max(0,Math.min(Math.abs(s.t0-t),Math.abs(s.t1-t)))})).filter(x=>N(x.s.text).includes(lw)).sort((a,b)=>a.d-b.d)[0];
+    if(!c||c.d>45)return;
+    const s=c.s;if(s.orig==null)s.orig=s.text;const i=N(s.text).indexOf(lw);
+    s.text=s.text.slice(0,i)+r+s.text.slice(i+w.length);n++;
+  });
+  return n;
+}
+function undoFixes(rec){let n=0;rec.segs.forEach(s=>{if(s.orig!=null){s.text=s.orig;delete s.orig;n++}});return n}
+
 function apiError(status,j){
   const msg=j&&(j.error&&(j.error.message||j.error)||j.message)||"";
   if(status===401||status===403)return(status===403&&/region|country|territor|supported/i.test(msg))?"Этот API недоступен из вашей страны. Используйте режим «Через claude.ai» или OpenRouter.":"Ключ не подходит. Проверьте его в настройках.";
@@ -1188,11 +1079,11 @@ async function callLLM(system,user){
     if(A.provider==="anthropic"){
       const base=(A.base||"https://api.anthropic.com").replace(/\/+$/,"");
       r=await fetch(base+"/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":A.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
-        body:JSON.stringify({model:A.model||"claude-opus-5-5",max_tokens:16000,system,messages:[{role:"user",content:user}]})});
+        body:JSON.stringify({model:A.model||"claude-opus-5-5",max_tokens:8000,system,messages:[{role:"user",content:user}]})});
     }else{
       const base=(A.base||"https://openrouter.ai/api/v1").replace(/\/+$/,"");
       r=await fetch(base+"/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+A.key},
-        body:JSON.stringify({model:A.model,max_tokens:16000,temperature:0.2,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+        body:JSON.stringify({model:A.model,max_tokens:8000,temperature:0.2,messages:[{role:"system",content:system},{role:"user",content:user}]})});
     }
   }catch(e){throw new Error("Нет связи с сервером ИИ. Из России API Anthropic напрямую не работает — используйте режим «Через claude.ai» или OpenRouter.")}
   const j=await r.json().catch(()=>null);
@@ -1205,43 +1096,18 @@ function segHash(rec){return rec.segs.length+":"+rec.segs.reduce((a,s)=>a+s.text
 async function runAI(rec){
   if(AIRUN.has(rec.id))return;AIRUN.add(rec.id);rec.aiError=null;rerenderIfOpen(rec.id);
   try{const{system,user}=buildPrompt(rec);const text=await callLLM(system,user);const data=parseAI(text);
-    rec.ai={data,created:Date.now(),model:S.ai.model||S.ai.provider,hash:segHash(rec)};await saveRec(rec);toast("Глубокий анализ готов: "+recTitle(rec),"good")}
+    setAI(rec,data,S.ai.model||S.ai.provider);await saveRec(rec);toast("Разбор готов: "+recTitle(rec))}
   catch(e){rec.aiError=e.message;toast(e.message,"bad",8000)}
   finally{AIRUN.delete(rec.id);rerenderIfOpen(rec.id)}
 }
 
 /* =========================================================
-   Живая волна
+   Индикатор громкости и таймер
    ========================================================= */
-class Wave{
-  constructor(cv,base=0.08){this.cv=cv;this.cx=cv.getContext("2d");this.lv=0;this.t=Math.random()*60;this.base=base;this.w=0;this.h=0;
-    this.blobs=[[139,108,255],[255,95,162],[255,148,71],[77,214,255],[255,212,59],[120,90,255]].map((c,i)=>({c:c.join(","),ph:i*1.9,sx:0.11+i*0.031,sy:0.09+i*0.027,r:0.34+((i*37)%9)/38}))}
-  size(){const r=Math.min(1.5,window.devicePixelRatio||1),w=this.cv.clientWidth,h=this.cv.clientHeight;if(!w||!h)return false;if(w!==this.w||h!==this.h){this.w=w;this.h=h;this.cv.width=w*r;this.cv.height=h*r;this.cx.setTransform(r,0,0,r,0,0)}return true}
-  draw(level,dt){
-    if(!this.size())return;
-    const{cx,w,h}=this;this.lv+=(Math.max(level,this.base)-this.lv)*0.14;const L=this.lv;this.t+=dt*(0.22+L*2.6);
-    cx.clearRect(0,0,w,h);cx.globalCompositeOperation="lighter";
-    const m=Math.max(220,Math.min(w,h*1.4));
-    this.blobs.forEach((b,i)=>{
-      const x=w/2+Math.sin(this.t*b.sx*5+b.ph)*w*0.2*(1+L*0.5);
-      const y=h*0.48+Math.cos(this.t*b.sy*5+b.ph*1.3)*h*0.18*(1+L*0.5);
-      const r=m*b.r*(0.62+L*0.95+0.05*Math.sin(this.t*2.2+i));
-      const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${b.c},0.5)`);g.addColorStop(0.45,`rgba(${b.c},0.16)`);g.addColorStop(1,`rgba(${b.c},0)`);
-      cx.fillStyle=g;cx.fillRect(0,0,w,h);
-    });
-    cx.globalCompositeOperation="source-over";
-  }
-}
-const WAVES={};
-const RM=matchMedia("(prefers-reduced-motion: reduce)");
-let lastT=performance.now();
-function frame(now){
-  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+function frame(){
   const A=Recorder.A;
-  if(A){const t=fmt(Recorder.elapsed());$("#recbarTime").textContent=t;if(curView==="new")$("#recTime").textContent=t}
-  const mv=RM.matches?0:dt;
-  if(curView==="new"&&WAVES.rec)WAVES.rec.draw(A?Recorder.level():0.06+0.03*Math.sin(now/900),A?mv:mv*0.6);
-  if(curView==="home"&&WAVES.home)WAVES.home.draw(0.1+0.04*Math.sin(now/1300),mv*0.7);
+  if(A){const t=fmt(Recorder.elapsed());$("#recbarTime").textContent=t;if(curView==="new"){$("#recTime").textContent=t;$("#lvl").style.width=Math.round(Recorder.level()*100)+"%"}}
+  else if(curView==="new")$("#lvl").style.width="0";
   requestAnimationFrame(frame);
 }
 
@@ -1250,16 +1116,16 @@ function frame(now){
    ========================================================= */
 const decClass=d=>{d=String(d||"").toLowerCase();return/не нанимать|скорее нет/.test(d)?"bad":/под вопросом/.test(d)?"warn":/нанимать|скорее да/.test(d)?"good":"warn"};
 function statusChip(rec){
-  if(Jobs.map.has(rec.id)||rec.status==="processing")return'<span class="chip info"><span class="spin" style="width:10px;height:10px"></span>Расшифровка</span>';
-  if(rec.status==="recording")return Recorder.A&&Recorder.A.rec.id===rec.id?'<span class="chip bad">● Запись</span>':'<span class="chip warn">Прервана</span>';
-  if(rec.status==="error")return'<span class="chip bad">Ошибка</span>';
-  if(rec.status==="empty")return'<span class="chip warn">Нет речи</span>';
-  if(rec.ai&&rec.ai.data&&rec.ai.data.verdict){const v=rec.ai.data.verdict;return`<span class="chip ${decClass(v.decision)}">${esc(v.decision)}${v.score!=null?" · "+esc(v.score):""}</span>`}
-  return'<span class="chip">Ждёт анализа</span>';
+  if(Jobs.map.has(rec.id)||rec.status==="processing")return'<span class="chip"><span class="spin" style="width:9px;height:9px;border-width:1.5px"></span>расшифровка</span>';
+  if(rec.status==="recording")return Recorder.A&&Recorder.A.rec.id===rec.id?'<span class="chip bad"><i></i>запись</span>':'<span class="chip warn">прервана</span>';
+  if(rec.status==="error")return'<span class="chip bad">ошибка</span>';
+  if(rec.status==="empty")return'<span class="chip warn">нет речи</span>';
+  if(rec.ai&&rec.ai.data&&rec.ai.data.verdict){const v=rec.ai.data.verdict;return`<span class="chip ${decClass(v.decision)}"><i></i>${esc(v.decision)}${v.score!=null?" · "+esc(v.score):""}</span>`}
+  return'<span class="chip">без разбора</span>';
 }
 function profileNote(){
-  if(PROFILE)return note("good",`<p><b>Голос «${esc(S.bossName)}» настроен.</b> Программа сама подпишет, где говорит ${esc(S.bossName)}, а где кандидат.</p>`);
-  return note("warn",`<p><b>Голос босса не настроен.</b> Программа разделит двух людей, но может перепутать, кто из них босс. Загрузите 1–5 минут его речи — это займёт минуту.</p><p><a href="#settings">Настроить голос →</a></p>`);
+  if(PROFILE)return"";
+  return note("warn",`<p>Голос босса не настроен — программа разделит двух людей, но может перепутать, кто из них босс. <a href="#settings">Настроить за минуту</a></p>`);
 }
 function refreshView(){if(curView==="home")renderHome();else if(curView==="settings")renderSettings();else if(curView==="int"&&INT)renderSaved()}
 
@@ -1268,46 +1134,36 @@ let listQuery="";
 async function renderHome(){
   const v=$("#v-home");const list=await allRecs();const st=await storageInfo();
   const q=listQuery.toLowerCase();const items=list.filter(r=>!q||(r.candidate+" "+r.position).toLowerCase().includes(q));
-  const es=engineState(),eng=Engine.asrReady&&Engine.svReady;
-  const fState=Folder.handle?(Folder.state==="granted"?"ok":"wait"):"";
   v.innerHTML=`
-  <div class="hero"><canvas id="homeWave" aria-hidden="true"></canvas>
-    <div class="hero-in"><h1>Собеседование —<br>в разбор за минуту</h1>
-      <p>Запишите разговор. Grass Voice расшифрует его, отделит голос босса от кандидата и разберёт ответы: где конкретика, где вода и стоит ли брать человека.</p>
-      <div class="row"><a class="btn primary big" href="#new">Начать запись</a><label class="btn big"><input type="file" id="lImport" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Загрузить запись</label></div>
-    </div></div>
-  <div class="steps">
-    <div class="step"><div class="n"><span>1 · Голос босса</span><i class="dot ${PROFILE?"ok":"wait"}"></i></div><b>${PROFILE?"Настроен":"Не настроен"}</b><p>${PROFILE?`${fmtLong(PROFILE.secs)} образца. Программа узнает «${esc(S.bossName)}» в любой записи.`:"Нужен один раз: 1–5 минут его речи из любой записи."}</p>${PROFILE?"":'<a class="btn sm primary" href="#settings">Настроить</a>'}</div>
-    <div class="step"><div class="n"><span>2 · Распознавание</span><i class="dot ${eng?"ok":es.cls==="loading"?"wait":""}"></i></div><b>${eng?"Готово":Engine.dlInfo()?"Скачивается":"Скачается при записи"}</b><p>${eng?`${MODEL_NAME(Engine.model)} модель, ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}. Работает прямо в браузере.`:"Модели качаются один раз и хранятся в браузере. Звук никуда не отправляется."}</p>${eng?"":'<button class="btn sm" id="hWarm">Скачать сейчас</button>'}</div>
-    <div class="step"><div class="n"><span>3 · Анализ</span><i class="dot ok"></i></div><b>${S.ai.provider==="copy"?"Через claude.ai":"Автоматически"}</b><p>${S.ai.provider==="copy"?"Метрики считаются сразу. Глубокий разбор — в два клика через ваш claude.ai.":"Метрики сразу, глубокий разбор Claude — сам после расшифровки."}</p></div>
-    <div class="step"><div class="n"><span>4 · Где хранится</span><i class="dot ${fState||"ok"}"></i></div><b>${Folder.handle?`Браузер + папка «${esc(Folder.name())}»`:"В этом браузере"}</b><p>${pl(list.length,"собеседование","собеседования","собеседований")} · ${Math.round(st.used/1e6)} МБ вместе с моделями.${Folder.handle?(Folder.state==="granted"?" Копии в папке обновляются сами.":" Нужно разрешить доступ к папке."):" Можно добавить копии в обычную папку."}</p>
-      ${Folder.handle&&Folder.state!=="granted"?'<button class="btn sm primary" id="hAllow">Разрешить доступ</button>':!Folder.handle&&Folder.supported?'<button class="btn sm" id="hFolder">Выбрать папку</button>':""}</div>
-  </div>
-  ${!DB.ok?note("bad","<p><b>Браузер не даёт сохранять данные.</b> Записи пропадут после закрытия вкладки. Откройте сайт не в режиме «Инкогнито».</p>"):""}
-  <div class="card">
-    <div class="card-h"><h2>Собеседования</h2>${list.length>4?`<input type="search" id="lSearch" placeholder="Поиск по имени или вакансии" value="${esc(listQuery)}" style="max-width:300px">`:""}</div>
-    <div class="list" style="padding:6px 8px 10px">${items.length?items.map(r=>{
-      const w=r.segs.reduce((a,s)=>a+WORDS(s.text).length,0);const d=r.ai&&r.ai.data&&r.ai.data.verdict;
-      const sub=(d&&(d.one_line||d.summary))||(r.segs[0]&&r.segs[0].text)||(r.status==="processing"?"Идёт расшифровка…":"Нет текста");
-      return`<a class="item" href="#i-${r.id}">${avatar(recTitle(r))}<div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span class="muted" style="font-weight:500">· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p><div class="meta">${dateShort(r.created)} · ${fmt(r.duration)} · ${pl(w,"слово","слова","слов")}${r.folderDir?" · в папке":""}</div></div><div class="item-r">${statusChip(r)}</div></a>`}).join("")
-      :list.length?'<div class="empty">Ничего не найдено.</div>':`<div class="empty"><b>Пока пусто</b><span>Здесь появятся собеседования. Каждое сохраняется автоматически: звук, расшифровка и анализ.</span></div>`}</div>
+  <div class="page-h"><h1>Собеседования</h1>
+    <div class="row"><label class="btn"><input type="file" id="lImport" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Загрузить файл</label><a class="btn primary" href="#new">Новая запись</a></div></div>
+  ${profileNote()}
+  ${!DB.ok?note("bad","<p>Браузер не даёт сохранять данные — записи пропадут после закрытия вкладки. Откройте сайт не в режиме «Инкогнито».</p>"):""}
+  ${list.length>6?`<input type="search" id="lSearch" placeholder="Поиск по имени или вакансии" value="${esc(listQuery)}">`:""}
+  <div class="card list">${items.length?items.map(r=>{
+      const d=r.ai&&r.ai.data&&r.ai.data.verdict;
+      const sub=(d&&d.summary)||(r.segs[0]&&r.segs[0].text)||(r.status==="processing"?"Идёт расшифровка…":"Нет текста");
+      return`<a class="item" href="#i-${r.id}"><div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span>· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p></div><div class="item-r"><span class="meta">${dateShort(r.created)} · ${fmt(r.duration)}</span>${statusChip(r)}</div></a>`}).join("")
+    :list.length?'<div class="empty">Ничего не найдено.</div>':`<div class="empty"><b>Пока пусто</b><span>Запишите собеседование или загрузите готовую запись.</span></div>`}</div>
+  <div class="foot">
+    <span>Хранится в этом браузере: ${pl(list.length,"собеседование","собеседования","собеседований")}, ${Math.round(st.used/1e6)} МБ вместе с моделями.</span>
+    ${Folder.handle?(Folder.state==="granted"?`<span>Копии — в папке «${esc(Folder.name())}».</span>`:`<span>Папка «${esc(Folder.name())}» ждёт разрешения.</span><button class="link" id="hAllow">Разрешить</button>`)
+      :Folder.supported?'<button class="link" id="hFolder">Сохранять копии в папку на компьютере</button>':""}
+    <a class="link" href="#settings">Где что хранится</a>
   </div>`;
-  WAVES.home=new Wave($("#homeWave"),0.1);
   const s=$("#lSearch");if(s){s.oninput=()=>{listQuery=s.value;renderHome().then(()=>{const n=$("#lSearch");n.focus();n.setSelectionRange(n.value.length,n.value.length)})}}
   $("#lImport").onchange=e=>{const f=e.target.files[0];e.target.value="";importFile(f,{})};
-  if($("#hWarm"))$("#hWarm").onclick=async e=>{e.currentTarget.disabled=true;await Engine.warm();if(curView==="home")renderHome()};
   if($("#hFolder"))$("#hFolder").onclick=pickFolder;
   if($("#hAllow"))$("#hAllow").onclick=async()=>{await Folder.allow();renderHome()};
 }
-async function pickFolder(){try{await Folder.pick();toast(`Копии будут сохраняться в папку «${Folder.name()}»`,"good");refreshView()}catch(e){if(e&&e.name!=="AbortError")toast("Не удалось выбрать папку: "+e.message,"bad")}}
+async function pickFolder(){try{await Folder.pick();toast(`Копии будут сохраняться в папку «${Folder.name()}»`);refreshView()}catch(e){if(e&&e.name!=="AbortError")toast("Не удалось выбрать папку: "+e.message,"bad")}}
 
 /* ---------- запись ---------- */
 function renderNew(){
-  $("#nProfile").innerHTML=profileNote();
+  $("#nProfile").innerHTML=profileNote();$("#nProfile").hidden=!PROFILE?false:true;
   if(S.liveDraft==null){const ua=navigator.userAgent;S.liveDraft=!!(window.webkitSpeechRecognition||window.SpeechRecognition)&&/Chrome|Edg/.test(ua)}
   $("#liveDraft").checked=!!S.liveDraft;
   if(!(window.webkitSpeechRecognition||window.SpeechRecognition))$("#liveDraft").closest("label").hidden=true;
-  if(!WAVES.rec)WAVES.rec=new Wave($("#wave"),0.06);
   setRecUI();renderLive();
   if(!Recorder.A)Engine.warm();
 }
@@ -1315,18 +1171,18 @@ function setRecUI(){
   const on=!!Recorder.A;
   $("#recBtn").classList.toggle("on",on);$("#recIco").innerHTML=on?ICON.stop:ICON.mic;
   $("#recBtn").setAttribute("aria-label",on?"Закончить запись":"Начать запись");
-  $("#recHint").textContent=on?"Идёт запись. Говорите как обычно. Нажмите, чтобы закончить — откроется анализ":"Нажмите, чтобы начать запись собеседования";
+  $("#recHint").textContent=on?"Идёт запись. Нажмите, чтобы закончить — откроется разбор":"Нажмите, чтобы начать запись";
   $("#recbar").hidden=!on||curView==="new";
   if(!on)$("#recTime").textContent="00:00";
 }
 function renderLive(){
   const box=$("#liveList");const A=Recorder.A;const rec=A&&A.rec;
-  if(!rec){box.innerHTML=`<div class="empty"><b>Здесь появится текст разговора</b><span>Реплики подписываются автоматически: «${esc(S.bossName)}» и кандидат. Когда закончите, нажмите кнопку ещё раз — откроется анализ. Запись сохраняется каждые 30 секунд.</span></div>`;$("#liveStat").textContent="";return}
+  if(!rec){box.innerHTML=`<div class="empty"><span>Здесь появится текст. Реплики подписываются автоматически: «${esc(S.bossName)}» и кандидат. Запись сохраняется каждые 30 секунд.</span></div>`;$("#liveStat").textContent="";return}
   const j=Jobs.map.get(rec.id);
-  if(!rec.segs.length){box.innerHTML=`<div class="empty"><b>Слушаю…</b><span>${Engine.dlInfo()?"Модели ещё скачиваются (это один раз). Запись уже идёт — текст появится после загрузки.":"Первый кусок текста появится после паузы в речи, примерно через 10–25 секунд."}</span></div>`}
+  if(!rec.segs.length)box.innerHTML=`<div class="empty"><span>${Engine.dlInfo()?"Модели скачиваются (это один раз). Запись уже идёт — текст появится после загрузки.":"Слушаю. Первый кусок текста появится после паузы в речи."}</span></div>`;
   else box.innerHTML=transcriptHTML(rec,{live:true});
   const w=rec.segs.reduce((a,s)=>a+WORDS(s.text).length,0);
-  $("#liveStat").textContent=pl(w,"слово","слова","слов")+(j&&j.pending?` · расшифровываю ${pl(j.pending,"кусок","куска","кусков")}`:"");
+  $("#liveStat").textContent=pl(w,"слово","слова","слов")+(j&&j.pending?` · в работе ${pl(j.pending,"кусок","куска","кусков")}`:"");
 }
 $("#recBtn").onclick=async()=>{
   const btn=$("#recBtn");btn.disabled=true;
@@ -1352,13 +1208,13 @@ function transcriptHTML(rec,{live=false,q="",edit=false}={}){
     const name=t.spk==="?"?"Определяю голос…":spkName(rec,t.spk);
     const who=live||t.spk==="?"?`<span>${esc(name)}</span>`:`<select data-turn="${ti}" aria-label="Кто говорит">${spkOpts(rec,t.spk)}</select>`;
     return`<div class="turn" data-spk="${t.spk}"><button class="ts" data-seek="${t.t0}" title="Слушать с этого места">${fmt(t.t0)}</button>
-      <div class="tb"><div class="spk">${who}${uns?'<span class="unsure" title="Программа не уверена, кто это сказал">проверьте, кто говорит</span>':""}</div>
-      <div class="txt">${t.idx.map(i=>`<span class="seg" data-s="${i}">${hl(rec.segs[i].text,q)}</span>`).join(" ")}</div></div></div>`}).join("");
+      <div class="tb"><div class="spk">${who}${uns?'<span class="unsure">проверьте, кто говорит</span>':""}</div>
+      <div class="txt">${t.idx.map(i=>{const s=rec.segs[i];return`<span class="seg${s.orig!=null?" fixed":""}" data-s="${i}"${s.orig!=null?` title="Исправлено Claude. Было: ${esc(s.orig)}"`:""}>${hl(s.text,q)}</span>`}).join(" ")}</div></div></div>`}).join("");
 }
 
 /* ---------- собеседование ---------- */
 let INT=null;
-function rerenderIfOpen(id){if(INT&&INT.rec.id===id&&curView==="int"){renderIntBody();renderIntProc()}}
+function rerenderIfOpen(id){if(INT&&INT.rec.id===id&&curView==="int"){renderIntBody();renderIntProc();const st=$("#iStatus");if(st)st.innerHTML=statusChip(INT.rec)}}
 async function renderInt(id){
   const v=$("#v-int");const rec=await getRec(id);
   if(!rec){v.innerHTML=`<div class="card empty"><b>Запись не найдена</b><span>Возможно, её удалили или она сохранена в другом браузере.</span><a class="btn" href="#home">К списку</a></div>`;return}
@@ -1366,16 +1222,16 @@ async function renderInt(id){
   INT.rec=rec;
   v.innerHTML=`
   <div class="card">
-    <div class="ihead">${avatar(recTitle(rec),"lg")}
+    <div class="ihead">
       <div class="titles">
         <input class="ttl" id="iCand" type="text" value="${esc(rec.candidate)}" placeholder="Имя кандидата" aria-label="Имя кандидата">
         <input class="sub" id="iPos" type="text" value="${esc(rec.position)}" placeholder="Вакансия — нажмите, чтобы указать" aria-label="Вакансия">
-        <div class="meta"><span>${dateStr(rec.created)}</span><span>Длительность <b>${fmt(rec.duration)}</b></span><span id="iStatus">${statusChip(rec)}</span></div>
+        <div class="meta"><span>${dateStr(rec.created)}</span><span>${fmt(rec.duration)}</span><span id="iStatus">${statusChip(rec)}</span></div>
       </div>
       <div class="actions">
         <details class="menu"><summary class="btn">Скачать</summary><div class="pop">
-          <button data-act="md">Отчёт целиком (.md)</button>
-          <button data-act="txt">Только расшифровка (.txt)</button>
+          <button data-act="md">Отчёт (.md)</button>
+          <button data-act="txt">Расшифровка (.txt)</button>
           <button data-act="audio" ${rec.audio?"":"disabled"}>Аудиозапись</button>
           <button data-act="print">Печать или PDF</button>
           <button data-act="copy">Скопировать отчёт</button>
@@ -1393,11 +1249,9 @@ async function renderInt(id){
   </div>
   ${rec.audio?`<div class="card player"><button class="play" id="pPlay" aria-label="Слушать">${ICON.play}</button><div class="ptime"><b id="pCur">00:00</b> / ${fmt(rec.duration)}</div>
     <div class="tl" id="tl" title="Цветом показано, кто говорит. Нажмите, чтобы перейти"><div class="tl-bg" id="tlBg"></div><div class="tl-prog" id="tlProg"></div></div>
-    <div class="speed" id="speed">${[1,1.25,1.5,2].map(x=>`<button data-rate="${x}" class="${x===1?"on":""}">${String(x).replace(".",",")}×</button>`).join("")}</div><audio id="player" preload="metadata" hidden></audio></div>`:""}
+    <div class="speed" id="speed">${[1,1.5,2].map(x=>`<button data-rate="${x}" class="${x===1?"on":""}">${String(x).replace(".",",")}×</button>`).join("")}</div><audio id="player" preload="metadata" hidden></audio></div>`:""}
   <div id="iProc"></div>
-  <div class="card"><div class="subtabs" role="tablist">
-    <button data-tab="analysis">Анализ</button><button data-tab="qa">Вопросы и ответы</button><button data-tab="tr">Расшифровка<span class="cnt" id="unsureCnt" hidden></span></button>
-  </div><div id="iBody"></div></div>`;
+  <div class="card"><div class="tabs" role="tablist"><button data-tab="analysis">Разбор</button><button data-tab="tr">Расшифровка<span class="cnt" id="unsureCnt" hidden></span></button></div><div id="iBody"></div></div>`;
   if(rec.audio){const b=await getAudio(rec);const p=$("#player");if(b&&p){if(INT.url)URL.revokeObjectURL(INT.url);INT.url=URL.createObjectURL(b);p.src=INT.url;
     p.ontimeupdate=onTime;p.onplay=p.onpause=()=>{const pp=$("#pPlay");if(pp)pp.innerHTML=p.paused?ICON.play:ICON.pause};p.onended=()=>{const pp=$("#pPlay");if(pp)pp.innerHTML=ICON.play}}}
   $("#iCand").oninput=e=>{rec.candidate=e.target.value.trim();saveRecSoon(rec)};
@@ -1412,143 +1266,98 @@ function renderTimeline(){
 }
 function renderSaved(){
   const el=$("#iSaved");if(!el||!INT)return;const rec=INT.rec;
-  const inFolder=rec.folderDir&&Folder.handle;
-  el.innerHTML=`<span><i></i>Сохранено в браузере${rec.audio?" — звук, текст и анализ":""}</span>
-    ${Folder.handle?(inFolder?`<span><i></i>Копия в папке «${esc(Folder.name())}/${esc(rec.folderDir)}»</span>`:Folder.state!=="granted"?`<span><i class="off"></i>Папка «${esc(Folder.name())}» ждёт разрешения</span><button class="btn sm" data-act="allowFolder">Разрешить</button>`:`<span><i class="off"></i>Копия в папку появится после расшифровки</span>`)
-      :Folder.supported?`<span><i class="off"></i>Копии в обычную папку не настроены</span><button class="btn sm ghost" data-act="pickFolder">Выбрать папку</button>`:""}`;
+  el.innerHTML=`<span><i></i>Сохранено в браузере${rec.audio?": звук, текст и разбор":""}</span>
+    ${Folder.handle?(rec.folderDir?`<span><i></i>Копия: ${esc(Folder.name())} / ${esc(rec.folderDir)}</span>`:Folder.state!=="granted"?`<span><i class="off"></i>Папка ждёт разрешения</span><button class="link" data-act="allowFolder">Разрешить</button>`:`<span><i class="off"></i>Копия в папку появится после расшифровки</span>`)
+      :Folder.supported?`<button class="link" data-act="pickFolder">Сохранять копии в папку</button>`:""}`;
 }
 function renderIntProc(){
   if(!INT)return;const rec=INT.rec,el=$("#iProc");if(!el)return;
   const j=Jobs.map.get(rec.id);const st=$("#iStatus");if(st)st.innerHTML=statusChip(rec);
   if(j&&!j.done){const p=j.total?Math.min(99,Math.round(j.doneSec/j.total*100)):0;const d=Engine.dlInfo();
-    el.innerHTML=`<div class="card pad stack"><div class="row"><span class="spin" style="color:var(--accent)"></span><b>${d?`Скачиваю модели распознавания: ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ — это один раз`:`Расшифровываю: ${fmtLong(j.doneSec)} из ${fmtLong(j.total)} записи`}</b></div>
-      <div class="bar"><i style="width:${d?Math.round(d.a/d.b*100):p}%"></i></div><span class="lbl">Можно переходить по разделам программы — расшифровка продолжится. Не закрывайте вкладку браузера.</span></div>`;return}
+    el.innerHTML=`<div class="card pad stack"><div class="row"><span class="spin"></span><span>${d?`Скачиваю модели: ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ — это один раз`:`Расшифровываю: ${fmtLong(j.doneSec)} из ${fmtLong(j.total)}`}</span></div>
+      <div class="bar"><i style="width:${d?Math.round(d.a/d.b*100):p}%"></i></div><span class="lbl">Можно открывать другие разделы — расшифровка продолжится. Не закрывайте вкладку.</span></div>`;return}
   if(rec.status==="recording"&&!(Recorder.A&&Recorder.A.rec.id===rec.id)){
-    el.innerHTML=note("warn",`<p><b>Запись была прервана</b> (закрыли вкладку или браузер). Сохранилось ${fmtLong(rec.duration)}${rec.audio?" звука":""} и ${pl(rec.segs.length,"кусок","куска","кусков")} текста.</p>${rec.audio?'<p><button class="btn sm primary" data-act="redo2">Расшифровать сохранённый звук</button></p>':""}`);return}
-  if(rec.status==="error"){el.innerHTML=note("bad",`<p><b>Расшифровка не удалась.</b> ${esc(rec.procError||"")}</p>${rec.audio?'<p><button class="btn sm primary" data-act="redo2">Попробовать снова</button></p>':""}`);return}
+    el.innerHTML=note("warn",`<p><b>Запись прервалась</b> (закрыли вкладку или браузер). Сохранилось ${fmtLong(rec.duration)}.</p>${rec.audio?'<p><button class="btn sm" data-act="redo2">Расшифровать сохранённый звук</button></p>':""}`);return}
+  if(rec.status==="error"){el.innerHTML=note("bad",`<p><b>Расшифровка не удалась.</b> ${esc(rec.procError||"")}</p>${rec.audio?'<p><button class="btn sm" data-act="redo2">Попробовать снова</button></p>':""}`);return}
   const i=rec.spkInfo;
-  if(i&&i.single&&rec.segs.length>4)el.innerHTML=note("info","<p>Похоже, в записи говорит один человек. Если это не так, поправьте подписи во вкладке «Расшифровка».</p>");
-  else if(i&&i.bossMissing)el.innerHTML=note("warn",`<p>Голос «${esc(S.bossName)}» не очень похож ни на одного из говорящих (другой микрофон или другой человек). Проверьте подписи. Если всё верно — «Ещё → Уточнить голос босса».</p>`);
-  else if(i&&i.method==="cluster"&&rec.segs.length)el.innerHTML=note("info",`<p>Голос босса не настроен, поэтому «${esc(S.bossName)}» — тот, кто заговорил первым. Перепутано? «Ещё → Поменять местами». <a href="#settings">Настроить голос</a></p>`);
+  if(i&&i.single&&rec.segs.length>4)el.innerHTML=note("info","<p>Похоже, в записи говорит один человек. Если это не так, поправьте подписи в расшифровке.</p>");
+  else if(i&&i.bossMissing)el.innerHTML=note("warn",`<p>Голос «${esc(S.bossName)}» не похож ни на одного из говорящих. Проверьте подписи в расшифровке.</p>`);
+  else if(i&&i.method==="cluster"&&rec.segs.length)el.innerHTML=note("info",`<p>Голос босса не настроен, поэтому «${esc(S.bossName)}» — тот, кто заговорил первым. Перепутано — «Ещё → Поменять местами».</p>`);
   else el.innerHTML="";
 }
 function renderIntBody(){
   if(!INT)return;const rec=INT.rec,body=$("#iBody");if(!body)return;
-  $$(".subtabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===INT.tab));
+  $$(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===INT.tab));
   const un=rec.segs.filter(isUnsure).length;const uc=$("#unsureCnt");if(uc){uc.hidden=!un;uc.textContent=un}
   const processing=Jobs.map.has(rec.id);
   if(INT.tab==="tr"){
-    body.innerHTML=`<div class="pad stack" style="padding-bottom:6px">
+    const nfix=rec.segs.filter(s=>s.orig!=null).length;
+    body.innerHTML=`<div class="pad stack" style="padding-bottom:4px">
       <div class="row"><input type="search" id="trq" placeholder="Поиск по тексту" value="${esc(INT.q)}" style="flex:1 1 220px">
-      <button class="btn ${INT.edit?"primary":""}" id="trEdit">${INT.edit?"Готово":"Исправить текст и подписи"}</button><button class="btn ghost" id="trCopy">Копировать</button></div>
-      <span class="lbl">${INT.edit?"Для каждой фразы выберите, кто говорит, и исправьте текст прямо в поле. Всё сохраняется сразу.":"Нажмите на время — включится это место записи. Нажмите на имя — сменится говорящий у всей реплики."}</span>
+      <button class="btn ${INT.edit?"primary":""}" id="trEdit">${INT.edit?"Готово":"Исправить"}</button><button class="btn ghost" id="trCopy">Копировать</button></div>
+      ${nfix&&!INT.edit?`<span class="lbl">Claude исправил ${pl(nfix,"фразу","фразы","фраз")} с ошибками распознавания — они подчёркнуты пунктиром, наведите, чтобы увидеть, как было. <button class="link" data-act="undoFix">Вернуть как было</button></span>`:""}
+      ${INT.edit?'<span class="lbl">Выберите, кто говорит, и поправьте текст прямо в поле. Всё сохраняется сразу.</span>':""}
     </div><div class="transcript" id="trBox">${rec.segs.length?transcriptHTML(rec,{q:INT.q,edit:INT.edit}):`<div class="empty">${processing?"Текст появится по мере расшифровки.":"Текста нет."}</div>`}</div>`;
     $("#trq").oninput=debounce(()=>{INT.q=$("#trq").value;$("#trBox").innerHTML=transcriptHTML(rec,{q:INT.q,edit:INT.edit});const f=$("#trBox mark");f&&f.scrollIntoView({block:"center"})},250);
-    $("#trEdit").onclick=()=>{INT.edit=!INT.edit;renderIntBody();if(!INT.edit){renderTimeline()}};
+    $("#trEdit").onclick=()=>{INT.edit=!INT.edit;renderIntBody();if(!INT.edit)renderTimeline()};
     $("#trCopy").onclick=async e=>flash(e.currentTarget,await copyText(transcriptText(rec))?"Скопировано":"Не удалось");
     return;
   }
-  if(processing&&!rec.segs.length){body.innerHTML='<div class="empty">Анализ появится, когда закончится расшифровка.</div>';return}
-  if(!rec.segs.length){body.innerHTML='<div class="empty">В записи нет текста — анализировать нечего.</div>';return}
-  if(INT.tab==="qa"){body.innerHTML=qaHTML(rec);return}
+  if(processing&&!rec.segs.length){body.innerHTML='<div class="empty">Разбор появится, когда закончится расшифровка.</div>';return}
+  if(!rec.segs.length){body.innerHTML='<div class="empty">В записи нет текста — разбирать нечего.</div>';return}
   body.innerHTML=analysisHTML(rec);
   const r=$("#aiReq");if(r)r.oninput=()=>{rec.req=r.value;saveRecSoon(rec)};
 }
 
-/* вкладка «Анализ» */
+/* ---------- разбор: пять блоков ---------- */
 const ts=t=>{const s=parseTs(t);return s==null?"":`<button class="tsb" data-seek="${s}">${esc(fmt(s))}</button>`};
-const arr=x=>Array.isArray(x)?x:x?[x]:[];
-function ring(score,cls){const s=clamp(+score||0,0,100),C=2*Math.PI*54;return`<div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="var(--panel2)" stroke-width="10"/><circle cx="60" cy="60" r="54" fill="none" stroke="var(--${cls})" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*s/100).toFixed(1)} ${C.toFixed(1)}"/></svg><div class="v"><b>${Math.round(s)}</b><small>из 100</small></div></div>`}
-function quickHTML(rec,m){
-  const pc=Math.round(m.per.cand.sec/m.tot*100),pb=Math.round(m.per.boss.sec/m.tot*100),po=Math.max(0,100-pb-pc);
-  return`<div class="tiles">
-    <div class="tile"><small>Конкретика в ответах</small><b>${m.concrete==null?"—":m.concrete+" %"}</b><em>ответов с цифрами или делами</em></div>
-    <div class="tile"><small>Сильных / слабых ответов</small><b>${m.strong} / ${m.weak}</b><em>из ${pl(m.qa.length,"ответа","ответов","ответов")}</em></div>
-    <div class="tile"><small>Кандидат говорил</small><b>${pc} %</b><em>${fmtLong(m.per.cand.sec)}</em></div>
-    <div class="tile"><small>Вопросы кандидата</small><b>${m.candQ.length}</b><em>о работе и компании</em></div></div>
-  <section class="sec"><h3>Кто сколько говорил</h3>
-    <div class="meter"><i style="width:${pb}%;background:var(--boss)"></i><i style="width:${pc}%;background:var(--cand)"></i>${po>0?`<i style="width:${po}%;background:var(--other)"></i>`:""}</div>
-    <div class="legend"><span><i style="background:var(--boss)"></i>${esc(S.bossName)} — ${pb} %</span><span><i style="background:var(--cand)"></i>${esc(recTitle(rec))} — ${pc} %</span>${po>1?`<span><i style="background:var(--other)"></i>Другие — ${po} %</span>`:""}</div></section>
-  <section class="sec"><h3>Что бросается в глаза<span>посчитано программой</span></h3>
-    ${m.sig.length?`<ul class="pts">${m.sig.map(([k,t])=>`<li style="--c:var(--${k==="good"?"good":k==="warn"?"warn":"info"})"><span>${esc(t)}</span></li>`).join("")}</ul>`:'<p class="muted">Явных сигналов нет.</p>'}</section>`;
+const dots=n=>{n=clamp(Math.round(+n||0),0,5);return`<span class="dots">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`};
+const blk=(title,src,inner)=>`<section class="blk"><div class="blk-h"><h3>${title}</h3>${src?`<small>${src}</small>`:""}</div>${inner}</section>`;
+function blocksData(rec){
+  const m=metrics(rec),d=rec.ai&&rec.ai.data;
+  const good=d?(arr(d.good).length?arr(d.good):arr(d.strengths)).slice(0,5).map(x=>({p:x.point,q:x.quote,t:x.t})):
+    m.qa.filter(x=>x.qual.rating==="strong").slice(0,5).map(x=>({p:`«${x.q}» — ${x.qual.plus.join(", ")||"ответил по делу"}`,t:x.at}));
+  const bad=d?(arr(d.bad).length?arr(d.bad):arr(d.risks)).slice(0,5).map(x=>({p:x.point,q:x.quote,t:x.t,type:x.type})):
+    m.qa.filter(x=>x.qual.rating==="weak").slice(0,5).map(x=>({p:`«${x.q}» — ${x.qual.minus.join(", ")||"слабый ответ"}`,t:x.at}));
+  return{m,d,good,bad};
 }
-function aiHTML(rec,d){
-  const v=d.verdict||{},c=d.candidate||{},cls=decClass(v.decision);
-  const sevc=s=>/высок/i.test(s)?"h":/низк/i.test(s)?"l":"m";
-  const sec=(title,inner,cnt)=>inner?`<section class="sec"><h3>${title}${cnt!=null?`<span>${cnt}</span>`:""}</h3>${inner}</section>`:"";
-  const cols=(a,b)=>a&&b?`<div class="cols">${a}${b}</div>`:(a||b||"");
-  let h=`<div class="verdict v-${cls}">${ring(v.score??v.confidence??0,cls)}<div><div class="dec">${esc(v.decision||"—")}</div>${v.one_line?`<div class="one">${esc(v.one_line)}</div>`:""}<div class="sum">${esc(v.summary||"")}</div>
-    <div class="row" style="margin-top:10px"><span class="chip">уверенность ${esc(v.confidence??"—")} %</span><span class="chip">${esc(rec.ai.model||"Claude")}</span><span class="chip">${dateShort(rec.ai.created)}</span></div></div></div>`;
-  const df=arr(v.deciding_factors);
-  h+=cols(df.length?sec("Главное для решения",`<ul class="pts acc">${df.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"",v.hire_if?sec("Брать, если",`<div class="prose"><p>${esc(v.hire_if)}</p></div>`):"");
-  const rf=arr(d.red_flags);
-  if(rf.length)h+=sec("Стоп-сигналы",`<ul class="pts bad">${rf.map(x=>`<li><b>${esc(x.point||x)}</b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}</li>`).join("")}</ul>`,rf.length);
-  const fl=[["Опыт",c.experience],["Сейчас",c.current_situation],["Деньги",c.salary],["Выход на работу",c.availability]].filter(x=>x[1]);
-  h+=sec("Кандидат",(fl.length?`<dl class="facts">${fl.map(([k,x])=>`<dt>${k}</dt><dd>${esc(x)}</dd>`).join("")}</dl>`:"")+(arr(c.facts).length?`<ul class="pts info">${arr(c.facts).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""));
-  const comp=arr(d.competencies);
-  h+=sec("Компетенции",comp.length?`<div class="comp">${comp.map(x=>{const s=clamp(Math.round(+x.score||0),0,5);return`<div class="comp-row"><b>${esc(x.name)}</b><div class="dots s${s}">${[1,2,3,4,5].map(i=>`<i class="${i<=s?"on":""}"></i>`).join("")}</div><div style="display:grid;gap:3px"><span>${esc(x.comment||"")}</span>${x.evidence?`<span class="quote">«${esc(x.evidence)}»${ts(x.t)}</span>`:""}</div></div>`}).join("")}</div>`:"");
-  const st=arr(d.strengths),rk=arr(d.risks);
-  h+=cols(st.length?sec("Сильные стороны",`<ul class="pts good">${st.map(x=>`<li><b>${esc(x.point)}</b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}</li>`).join("")}</ul>`,st.length):"",
-    rk.length?sec("Риски",`<ul class="pts bad">${rk.map(x=>`<li><b>${esc(x.point)}<span class="sev ${sevc(x.severity)}">${esc(x.severity||"")}</span></b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}${x.how_to_check?`<span class="lbl">Как проверить: ${esc(x.how_to_check)}</span>`:""}</li>`).join("")}</ul>`,rk.length):"");
-  const inc=arr(d.inconsistencies),ev=arr(d.evasions);
-  h+=cols(inc.length?sec("Противоречия",`<ul class="pts warn">${inc.map(x=>`<li><b>${esc(x.point)}</b>${arr(x.quotes).map(q=>`<span class="quote">«${esc(q.text||q)}»${ts(q.t)}</span>`).join("")}</li>`).join("")}</ul>`,inc.length):"",
-    ev.length?sec("Ушёл от ответа",`<ul class="pts warn">${ev.map(x=>`<li><b>${esc(x.question)}</b><span>${esc(x.what_happened||"")} ${ts(x.t)}</span></li>`).join("")}</ul>`,ev.length):"");
-  const mo=d.motivation||{},co=d.communication||{};
-  h+=cols((mo.type||mo.comment||arr(mo.drivers).filter(Boolean).length)?sec("Мотивация",`<div class="prose">${mo.type?`<p><b>${esc(mo.type)}</b></p>`:""}${arr(mo.drivers).filter(Boolean).length?`<div class="chips">${arr(mo.drivers).filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:""}${mo.comment?`<p>${esc(mo.comment)}</p>`:""}</div>`):"",
-    (co.summary||arr(co.observations).filter(Boolean).length)?sec("Как общается",`<div class="prose">${co.summary?`<p>${esc(co.summary)}</p>`:""}${arr(co.observations).filter(Boolean).length?`<ul class="pts">${arr(co.observations).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>`):"");
-  if(d.culture_fit)h+=sec("Подходит ли команде",`<div class="prose"><p>${esc(d.culture_fit)}</p></div>`);
-  const fq=arr(d.followups);
-  if(fq.length)h+=sec("Вопросы для второй встречи",`<ol class="fq">${fq.map(x=>`<li><span>${esc(x.question||x)}${x.why?`<small>${esc(x.why)}</small>`:""}</span></li>`).join("")}</ol><div><button class="btn sm" data-act="copyq">Скопировать вопросы</button></div>`,fq.length);
-  const nc=arr(d.not_covered).filter(Boolean),rc=arr(d.reference_checks).filter(Boolean);
-  h+=cols(nc.length?sec("Не обсудили",`<ul class="pts">${nc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"",rc.length?sec("Спросить у прошлых работодателей",`<ul class="pts">${rc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"");
-  const fb=arr(d.interviewer_feedback);
-  if(fb.length)h+=sec("Обратная связь интервьюеру",`<ul class="pts info">${fb.map(x=>`<li><span>${esc(x.point||x)} ${ts(x.t)}</span></li>`).join("")}</ul>`);
-  if(d.transcript_issues)h+=sec("Замечания по расшифровке",`<p class="muted">${esc(d.transcript_issues)}</p>`);
+function speechLine(m){
+  const f=m.fill,h=m.hedge;
+  const tone=m.per.cand.words<30?"Кандидат сказал слишком мало, чтобы судить о речи.":f>6||h>3?"Часто запинается и сомневается в формулировках.":f>3||h>1.5?"Говорит в целом уверенно, иногда запинается.":"Говорит уверенно, почти без запинок.";
+  return`<p class="lead">${tone}</p><div class="kv"><span>Слова-паразиты <b>${f.toFixed(1)}</b> на 100 слов</span><span>Неуверенность <b>${h.toFixed(1)}</b> на 100</span>${m.lat?`<span>Пауза перед ответом <b>${m.lat.toFixed(1)} с</b></span>`:""}<span>Говорил <b>${Math.round(m.per.cand.sec/m.tot*100)} %</b> времени</span>${m.paceC?`<span>Темп <b>${m.paceC}</b> сл/мин</span>`:""}</div>`;
+}
+function blocksHTML(rec,{forPrint=false}={}){
+  const{m,d,good,bad}=blocksData(rec);
+  const v=d&&d.verdict,k=d&&d.knowledge,cls=v?decClass(v.decision):"";
+  const list=(items,kind)=>items.length?`<ul class="pts ${kind}">${items.map(x=>`<li><span>${esc(x.p)}${x.type?`<span class="tag">${esc(x.type)}</span>`:""}${ts(x.t)}</span>${x.q?`<span class="quote">«${esc(x.q)}»</span>`:""}</li>`).join("")}</ul>`:"";
+  let h="";
+  h+=blk("Итог",d?"Claude":"",v?`<div class="verdict v-${cls}"><b>${esc(v.decision||"—")}</b>${v.score!=null?`<span class="sc">${esc(v.score)} / 100</span>`:""}</div><p class="lead">${esc(v.summary||"")}</p>`
+    :`<p class="lead muted">Итог и оценку знаний даёт Claude. ${forPrint?"":"Запустите разбор внизу — это пара кликов."}</p>`);
+  h+=blk("Знание дела",d?"Claude":"",k?`<div class="row">${dots(k.score)}<span class="muted">${esc(k.score)} из 5</span></div><p class="lead">${esc(k.summary||"")}</p>${arr(k.points).length?`<ul class="pts">${arr(k.points).slice(0,3).map(x=>`<li><span>${esc(x.text||x)}${ts(x.t)}</span></li>`).join("")}</ul>`:""}`
+    :`<p class="muted">${d?"В этом разборе нет оценки знаний — обновите разбор.":"Появится после разбора Claude."}</p>`);
+  h+=blk("Ответил хорошо",d?"Claude":"программа",list(good,"good")||`<p class="muted">${d?"Сильных ответов не отмечено.":m.qa.length?"Сильных ответов не найдено: мало цифр и личных примеров.":"Пар «вопрос — ответ» не найдено. Проверьте подписи в расшифровке."}</p>`);
+  h+=blk("Где ошибся или поплыл",d?"Claude":"программа",list(bad,"bad")||`<p class="muted">${d?"Серьёзных ошибок не отмечено.":"Слабых ответов не найдено."}</p>`);
+  h+=blk("Как говорит",d&&d.speech?"Claude + программа":"программа",(d&&d.speech&&d.speech.summary?`<p class="lead">${esc(d.speech.summary)}</p>`:"")+speechLine(m).replace(/^<p class="lead">[^<]*<\/p>/,d&&d.speech&&d.speech.summary?"":"$&"));
   return h;
 }
-function aiActionHTML(rec,has){
-  const A=S.ai,run=AIRUN.has(rec.id);
-  const req=`<label class="field"><span>Что важно в кандидате — чем подробнее, тем точнее разбор</span><textarea id="aiReq" rows="3" placeholder="Например: опыт продаж B2B от 3 лет, знание 1С, готовность к командировкам, честность">${esc(rec.req||"")}</textarea></label>`;
-  if(run)return`<div class="ai-cta"><div class="row"><span class="spin" style="color:var(--accent)"></span><b>Claude разбирает собеседование…</b></div><span class="lbl">Обычно 1–2 минуты. Можно уйти с этой страницы — результат сохранится.</span></div>`;
-  if(A.provider==="copy")return`<div class="ai-cta">
-    ${has?'<b class="h2">Обновить глубокий разбор</b>':`<div class="stack" style="gap:6px"><b class="h2">Глубокий разбор от Claude</b><span class="muted">Claude прочитает расшифровку как опытный HR: оценит каждый ответ, найдёт противоречия и уходы от вопросов, даст вердикт и вопросы для второй встречи. Ключ API не нужен — используется ваш claude.ai.</span></div>`}
-    ${req}
-    <div class="stepsAI">
-      <div><div class="stack" style="gap:8px"><b>Скопируйте запрос</b><span class="lbl">В нём инструкция для разбора и вся расшифровка.</span><div><button class="btn primary" data-act="copyPrompt">Скопировать запрос</button></div></div></div>
-      <div><div class="stack" style="gap:8px"><b>Отправьте его в новом чате Claude</b><span class="lbl">Откройте <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a>, вставьте запрос и отправьте. Выберите самую сильную модель.</span></div></div>
-      <div><div class="stack" style="gap:8px"><b>Скопируйте ответ и вставьте сюда</b><textarea id="aiPaste" rows="3" placeholder="Вставьте ответ Claude целиком — он начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
-    </div></div>`;
-  return`<div class="ai-cta">${has?"":`<div class="stack" style="gap:6px"><b class="h2">Глубокий разбор от Claude</b><span class="muted">Оценка каждого ответа, противоречия, риски, вердикт и вопросы для второй встречи.</span></div>`}${req}
-    <div class="row"><button class="btn primary big" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button><span class="lbl">${esc(A.provider==="anthropic"?(A.model||"claude-opus-5-5"):(A.model||""))}</span></div>
-    ${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}</div>`;
+function ctaHTML(rec){
+  const A=S.ai,has=!!(rec.ai&&rec.ai.data),run=AIRUN.has(rec.id);
+  const req=`<label class="field"><span>Что важно в кандидате (необязательно — сделает разбор точнее)</span><textarea id="aiReq" rows="2" placeholder="Например: опыт продаж B2B, знание 1С, честность">${esc(rec.req||"")}</textarea></label>`;
+  if(run)return`<div class="cta"><div class="row"><span class="spin"></span><span>Claude разбирает собеседование… Обычно 1–2 минуты.</span></div></div>`;
+  const inner=A.provider==="copy"?`${req}<div class="steps">
+      <div><div class="stack" style="gap:6px"><span>Скопируйте запрос — в нём инструкция и вся расшифровка.</span><div><button class="btn primary" data-act="copyPrompt">Скопировать запрос</button></div></div></div>
+      <div><span>Вставьте его в новый чат на <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a> и отправьте.</span></div>
+      <div><div class="stack" style="gap:6px"><span>Скопируйте ответ Claude целиком и вставьте сюда.</span><textarea id="aiPaste" rows="3" placeholder="Ответ начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
+    </div>`:`${req}<div class="row"><button class="btn primary" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button><span class="lbl">${esc(A.provider==="anthropic"?(A.model||"claude-opus-5-5"):(A.model||""))}</span></div>${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}`;
+  if(has)return`<div class="cta"><details><summary>Обновить разбор Claude</summary><div class="stack" style="margin-top:12px">${inner}</div></details></div>`;
+  return`<div class="cta"><div class="stack" style="gap:4px"><b>Разбор Claude</b><span class="lbl">Итог, знание дела, сильные и слабые ответы. Заодно Claude исправит ошибки распознавания в расшифровке.</span></div>${inner}</div>`;
 }
 function analysisHTML(rec){
-  const m=metrics(rec),d=rec.ai&&rec.ai.data;const stale=d&&rec.ai.hash!==segHash(rec);
-  const how=`<div class="how"><span><b>Цифры и сигналы</b> — программа считает сама, сразу после записи.</span><span><b>Глубокий разбор</b> — делает Claude по расшифровке${d?"":", когда вы его запустите"}.</span></div>`;
-  if(d)return how+(stale?`<div style="padding:14px 22px 0">${note("warn","<p>Расшифровку изменили после разбора. Обновите разбор внизу страницы, чтобы он учёл правки.</p>")}</div>`:"")+aiHTML(rec,d)+`<div style="border-top:1px solid var(--line)"><div class="card-h"><h2>Цифры по речи</h2></div>${quickHTML(rec,m)}</div><div style="border-top:1px solid var(--line)">${aiActionHTML(rec,true)}</div>`;
-  return how+quickHTML(rec,m)+`<div style="border-top:1px solid var(--line)">${aiActionHTML(rec,false)}</div>`;
-}
-/* вкладка «Вопросы и ответы» */
-function qaHTML(rec){
-  const m=metrics(rec),d=rec.ai&&rec.ai.data,ai=arr(d&&d.answers);
-  const near=t=>{let b=null,bd=25;ai.forEach(a=>{const s=parseTs(a.t);if(s==null)return;const dd=Math.abs(s-t);if(dd<bd){bd=dd;b=a}});return b};
-  const extra=`<section class="sec"><h3>Речь кандидата</h3><div class="kv">
-    <div><b>${m.fill.toFixed(1)}</b><small>слов-паразитов на 100 слов</small></div><div><b>${m.hedge.toFixed(1)}</b><small>неуверенных слов на 100</small></div><div><b>${m.act}</b><small>глаголов результата («сделал», «увеличил»)</small></div>
-    <div><b>${m.iC} / ${m.weC}</b><small>«я» / «мы»</small></div><div><b>${m.lat?m.lat.toFixed(1)+" с":"—"}</b><small>пауза перед ответом</small></div><div><b>${m.paceC??"—"}</b><small>слов в минуту</small></div></div></section>
-  ${(m.money.length||m.exper.length)?`<section class="sec"><h3>Цифры из ответов</h3><dl class="facts">${m.money.length?`<dt>Деньги</dt><dd>${m.money.map(esc).join(" · ")}</dd>`:""}${m.exper.length?`<dt>Сроки опыта</dt><dd>${m.exper.map(esc).join(" · ")}</dd>`:""}</dl></section>`:""}
-  ${m.negs.length?`<section class="sec"><h3>Негатив о прошлом опыте</h3><ul class="pts warn">${m.negs.slice(0,8).map(x=>`<li><span>${esc(x.s)} ${ts(x.t)}</span></li>`).join("")}</ul></section>`:""}
-  ${m.candQ.length?`<section class="sec"><h3>Вопросы кандидата</h3><ul class="pts info">${m.candQ.slice(0,10).map(x=>`<li><span>${esc(x.s)} ${ts(x.t)}</span></li>`).join("")}</ul></section>`:""}
-  ${m.topics.length?`<section class="sec"><h3>Частые темы</h3><div class="chips">${m.topics.map(x=>`<span>${esc(x.w)}<em>${x.n}</em></span>`).join("")}</div></section>`:""}`;
-  if(!m.qa.length)return`<div class="empty"><b>Пар «вопрос — ответ» не найдено</b><span>Программа ищет вопрос руководителя и следующий за ним ответ кандидата. Проверьте подписи говорящих во вкладке «Расшифровка».</span></div>`+extra;
-  return`<div class="how"><span><b>Оценка программы</b> — по конкретике: цифры, личные действия, длина, неуверенность.</span>${d?"<span><b>Оценка Claude</b> — по смыслу ответа.</span>":"<span>Сделайте глубокий разбор — добавится оценка Claude по смыслу.</span>"}</div>
-  <div class="qa">${m.qa.map((x,i)=>{const a=near(x.qt);const q=x.qual;
-    return`<div class="qa-card"><div class="qa-q"><b>${i+1}. ${esc(x.q)}</b>${ts(x.qt)}</div>
-      <div class="qa-a ${x.a.length>420?"clip":""}">${esc(x.a)}</div>
-      <div class="qa-f"><span class="rate ${q.rating}">${RATE_TXT[q.rating]}</span>${[...q.plus.map(p=>"+ "+p),...q.minus.map(p=>"− "+p)].map(esc).join(" · ")}<span class="faint">· ${q.words} сл.${x.lat>2?` · пауза ${x.lat.toFixed(1)} с`:""}</span>${ts(x.at)}</div>
-      ${a?`<div class="aiq"><span class="rate ${rateFromAI(a.rating)}">Claude: ${esc(a.rating||"")}</span><span>${esc(a.why||"")}</span></div>`:""}</div>`}).join("")}</div>`+extra;
+  const d=rec.ai&&rec.ai.data,stale=d&&rec.ai.hash!==segHash(rec);
+  return(stale?`<div style="padding:14px 20px 0">${note("warn","<p>Расшифровку поменяли после разбора. Обновите разбор внизу, чтобы он учёл правки.</p>")}</div>`:"")+blocksHTML(rec)+ctaHTML(rec);
 }
 
-/* действия на странице собеседования */
+/* действия */
 $("#v-int").addEventListener("click",async e=>{
   const sk=e.target.closest("[data-seek]");if(sk){seek(+sk.dataset.seek);return}
   const tb=e.target.closest("[data-tab]");if(tb){INT.tab=tb.dataset.tab;INT.edit=false;renderIntBody();return}
@@ -1556,7 +1365,7 @@ $("#v-int").addEventListener("click",async e=>{
   if(e.target.closest("#pPlay")){const p=$("#player");if(p){if(p.paused)p.play().catch(()=>{});else p.pause()}return}
   const tl=e.target.closest("#tl");if(tl&&INT){const r=tl.getBoundingClientRect();seek((e.clientX-r.left)/r.width*(INT.rec.duration||0)+0.3);return}
   const b=e.target.closest("[data-act]");if(!b||!INT)return;const rec=INT.rec,act=b.dataset.act;
-  const menu=b.closest("details");if(menu&&act!=="del"&&act!=="redo")menu.open=false;
+  const menu=b.closest("details.menu");if(menu&&act!=="del"&&act!=="redo")menu.open=false;
   if(act==="md")download(new Blob([reportMD(rec)],{type:"text/markdown;charset=utf-8"}),fileBase(rec)+".md");
   else if(act==="txt")download(new Blob([plainTranscript(rec)],{type:"text/plain;charset=utf-8"}),fileBase(rec)+".txt");
   else if(act==="audio"){const a=await getAudio(rec);if(a)download(a,fileBase(rec)+"."+audioExt(a.type));else toast("Звук не найден","bad")}
@@ -1565,22 +1374,23 @@ $("#v-int").addEventListener("click",async e=>{
   else if(act==="relabel"){labelSpeakers(rec);await saveRec(rec);renderTimeline();renderIntProc();renderIntBody();toast("Говорящие определены заново")}
   else if(act==="swap"){rec.segs.forEach(s=>{if(s.spk==="boss")s.spk="cand";else if(s.spk==="cand")s.spk="boss"});await saveRec(rec);renderTimeline();renderIntBody();toast("Поменял местами")}
   else if(act==="teach"){const embs=rec.segs.filter(s=>s.spk==="boss"&&s.emb&&(s.manual||s.conf>0.05)&&s.t1-s.t0>1.5).map(s=>s.emb);
-    if(embs.length<3){toast("Мало уверенных реплик босса в этой записи. Сначала проверьте подписи в расшифровке.","warn");return}
-    try{PROFILE=mergeProfile(PROFILE,buildProfile(embs),"Собеседование: "+recTitle(rec));await saveProfile();toast("Голос босса уточнён по этой записи","good")}catch(err){toast(err.message,"bad")}}
-  else if(act==="redo"){if(Jobs.map.has(rec.id)){toast("Расшифровка уже идёт");return}armed(b,()=>{menu&&(menu.open=false);reprocess(rec).then(()=>renderInt(rec.id))},"Ещё раз — текущий текст заменится")}
+    if(embs.length<3){toast("Мало уверенных реплик босса в этой записи. Сначала проверьте подписи.","bad");return}
+    try{PROFILE=mergeProfile(PROFILE,buildProfile(embs),"Собеседование: "+recTitle(rec));await saveProfile();toast("Голос босса уточнён")}catch(err){toast(err.message,"bad")}}
+  else if(act==="redo"){if(Jobs.map.has(rec.id)){toast("Расшифровка уже идёт");return}armed(b,()=>{menu&&(menu.open=false);reprocess(rec).then(()=>renderInt(rec.id))},"Ещё раз — текст заменится")}
   else if(act==="redo2"){if(!Jobs.map.has(rec.id))reprocess(rec).then(()=>renderInt(rec.id))}
   else if(act==="del")armed(b,async()=>{await deleteRec(rec.id);INT=null;toast("Собеседование удалено");location.hash="#home"},"Удалить навсегда?");
   else if(act==="runAI")runAI(rec);
   else if(act==="copyPrompt"){const{system,user}=buildPrompt(rec);flash(b,await copyText(system+"\n\n=====\n\n"+user)?"Скопировано — вставьте в claude.ai":"Не удалось скопировать")}
-  else if(act==="applyPaste"){try{const data=parseAI($("#aiPaste").value);rec.ai={data,created:Date.now(),model:"claude.ai",hash:segHash(rec)};rec.aiError=null;await saveRec(rec);renderIntBody();renderIntProc();window.scrollTo({top:$("#iBody").getBoundingClientRect().top+scrollY-140,behavior:"smooth"});toast("Разбор сохранён","good")}catch(err){toast(err.message,"bad",8000)}}
-  else if(act==="copyq"){const q=arr(rec.ai&&rec.ai.data&&rec.ai.data.followups).map((x,i)=>`${i+1}. ${x.question||x}`).join("\n");flash(b,await copyText(q)?"Скопировано":"Не удалось")}
+  else if(act==="applyPaste"){try{const data=parseAI($("#aiPaste").value);setAI(rec,data,"claude.ai");await saveRec(rec);renderTimeline();renderIntBody();renderIntProc();window.scrollTo({top:$("#iBody").getBoundingClientRect().top+scrollY-120,behavior:"smooth"});toast(rec.ai.fixed?`Разбор готов. Исправлено ошибок в расшифровке: ${rec.ai.fixed}`:"Разбор готов")}catch(err){toast(err.message,"bad",8000)}}
+  else if(act==="undoFix"){const n=undoFixes(rec);if(rec.ai)rec.ai.hash=segHash(rec);await saveRec(rec);renderIntBody();toast(`Вернул исходный текст: ${pl(n,"фраза","фразы","фраз")}`)}
   else if(act==="pickFolder")pickFolder();
   else if(act==="allowFolder"){await Folder.allow();renderSaved()}
 });
+function setAI(rec,data,model){const fixed=applyFixes(rec,data.fixes);rec.ai={data,created:Date.now(),model,hash:segHash(rec),fixed};rec.aiError=null}
 $("#v-int").addEventListener("change",async e=>{
   if(!INT)return;const rec=INT.rec;
   const t=e.target.closest("select[data-turn]");
-  if(t){const turn=turnsOf(rec)[+t.dataset.turn];if(turn){turn.idx.forEach(i=>{rec.segs[i].spk=t.value;rec.segs[i].manual=true});await saveRec(rec);renderTimeline();renderIntBody();toast(`Реплика теперь у «${spkName(rec,t.value)}»`,"",2200)}return}
+  if(t){const turn=turnsOf(rec)[+t.dataset.turn];if(turn){turn.idx.forEach(i=>{rec.segs[i].spk=t.value;rec.segs[i].manual=true});await saveRec(rec);renderTimeline();renderIntBody()}return}
   const sg=e.target.closest("select[data-seg]");
   if(sg){const s=rec.segs[+sg.dataset.seg];if(s){s.spk=sg.value;s.manual=true;saveRecSoon(rec,300)}}
 });
@@ -1588,7 +1398,7 @@ $("#v-int").addEventListener("focusout",e=>{
   const ed=e.target.closest("[data-edit]");if(!ed||!INT)return;const s=INT.rec.segs[+ed.dataset.edit];if(!s)return;
   const v=ed.textContent.replace(/\s+/g," ").trim();if(v&&v!==s.text){s.text=v;s.edited=true;saveRecSoon(INT.rec,300)}
 });
-function seek(t){const p=$("#player");if(!p){toast("Звук этой записи не сохранён","warn");return}p.currentTime=Math.max(0,t-0.3);p.play().catch(()=>{})}
+function seek(t){const p=$("#player");if(!p){toast("Звук этой записи не сохранён","bad");return}p.currentTime=Math.max(0,t-0.3);p.play().catch(()=>{})}
 let lastNow=-1;
 function onTime(){
   if(!INT)return;const p=$("#player"),t=p.currentTime,segs=INT.rec.segs;
@@ -1604,43 +1414,23 @@ const audioExt=t=>/mp4|m4a|aac/.test(t)?"m4a":/mpeg|mp3/.test(t)?"mp3":/ogg/.tes
    Экспорт
    ========================================================= */
 function reportMD(rec){
-  const m=metrics(rec),d=rec.ai&&rec.ai.data,L=[];
-  L.push(`# Собеседование: ${recTitle(rec)}`);L.push(`${rec.position?"Вакансия: "+rec.position+"  \n":""}Дата: ${dateStr(rec.created)}  \nДлительность: ${fmtLong(rec.duration)}`);
-  if(d){const v=d.verdict||{},c=d.candidate||{};
-    L.push(`\n## Итог: ${v.decision||"—"} — ${v.score??"—"}/100 (уверенность ${v.confidence??"—"} %)`);if(v.one_line)L.push(`**${v.one_line}**\n`);L.push(v.summary||"");
-    if(arr(v.deciding_factors).length){L.push("\n**Главное для решения:**");arr(v.deciding_factors).forEach(x=>L.push(`- ${x}`))}
-    if(v.hire_if)L.push(`\n**Брать, если:** ${v.hire_if}`);
-    if(arr(d.red_flags).length){L.push("\n## Стоп-сигналы");arr(d.red_flags).forEach(x=>L.push(`- **${x.point||x}**${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}`))}
-    const fl=[["Опыт",c.experience],["Сейчас",c.current_situation],["Деньги",c.salary],["Выход на работу",c.availability]].filter(x=>x[1]);
-    if(fl.length||arr(c.facts).length){L.push("\n## Кандидат");fl.forEach(([k,x])=>L.push(`- **${k}:** ${x}`));arr(c.facts).forEach(x=>L.push(`- ${x}`))}
-    if(arr(d.answers).length){L.push("\n## Оценка ответов");arr(d.answers).forEach(x=>L.push(`- [${x.t||""}] **${x.question}** — ${x.rating||""}. ${x.why||""}`))}
-    if(arr(d.competencies).length){L.push("\n## Компетенции");arr(d.competencies).forEach(x=>L.push(`- **${x.name}** — ${x.score}/5. ${x.comment||""}${x.evidence?` _«${x.evidence}» [${x.t||""}]_`:""}`))}
-    if(arr(d.strengths).length){L.push("\n## Сильные стороны");arr(d.strengths).forEach(x=>L.push(`- ${x.point}${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}`))}
-    if(arr(d.risks).length){L.push("\n## Риски");arr(d.risks).forEach(x=>L.push(`- **${x.point}** (${x.severity||""})${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}${x.how_to_check?` — проверить: ${x.how_to_check}`:""}`))}
-    if(arr(d.inconsistencies).length){L.push("\n## Противоречия");arr(d.inconsistencies).forEach(x=>L.push(`- ${x.point}`+arr(x.quotes).map(q=>` _«${q.text||q}» [${q.t||""}]_`).join("")))}
-    if(arr(d.evasions).length){L.push("\n## Ушёл от ответа");arr(d.evasions).forEach(x=>L.push(`- **${x.question}** — ${x.what_happened||""} [${x.t||""}]`))}
-    if(d.motivation){L.push("\n## Мотивация");if(d.motivation.type)L.push(d.motivation.type);if(arr(d.motivation.drivers).filter(Boolean).length)L.push("Движущие силы: "+arr(d.motivation.drivers).filter(Boolean).join(", "));if(d.motivation.comment)L.push(d.motivation.comment)}
-    if(d.communication){L.push("\n## Как общается");if(d.communication.summary)L.push(d.communication.summary);arr(d.communication.observations).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
-    if(d.culture_fit)L.push(`\n## Подходит ли команде\n${d.culture_fit}`);
-    if(arr(d.followups).length){L.push("\n## Вопросы для второй встречи");arr(d.followups).forEach((x,i)=>L.push(`${i+1}. ${x.question||x}${x.why?` — ${x.why}`:""}`))}
-    if(arr(d.not_covered).filter(Boolean).length){L.push("\n## Не обсудили");arr(d.not_covered).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
-    if(arr(d.reference_checks).filter(Boolean).length){L.push("\n## Спросить у прошлых работодателей");arr(d.reference_checks).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
-    if(arr(d.interviewer_feedback).length){L.push("\n## Обратная связь интервьюеру");arr(d.interviewer_feedback).forEach(x=>L.push(`- ${x.point||x}${x.t?` [${x.t}]`:""}`))}
-  }
-  L.push("\n## Цифры по речи");
-  L.push(`- Доля речи: ${S.bossName} ${Math.round(m.per.boss.sec/m.tot*100)} %, кандидат ${Math.round(m.per.cand.sec/m.tot*100)} %`);
-  L.push(`- Вопросов задано: ${m.bossQ}; ответов: ${m.qa.length}, из них сильных ${m.strong}, слабых ${m.weak}; конкретика: ${m.concrete??"—"} %`);
-  L.push(`- Средний ответ: ${m.avgAns} слов; вопросов от кандидата: ${m.candQ.length}`);
-  L.push(`- Слов-паразитов: ${m.fill.toFixed(1)} на 100 слов; неуверенных слов: ${m.hedge.toFixed(1)} на 100; «я»/«мы»: ${m.iC}/${m.weC}`);
-  m.sig.forEach(([k,t])=>L.push(`- ${t}`));
+  const{m,d,good,bad}=blocksData(rec),L=[];
+  L.push(`# ${recTitle(rec)}${rec.position?" — "+rec.position:""}`);L.push(`${dateStr(rec.created)} · ${fmtLong(rec.duration)}`);
+  const v=d&&d.verdict,k=d&&d.knowledge;
+  if(v){L.push(`\n## Итог: ${v.decision||"—"}${v.score!=null?` (${v.score}/100)`:""}`);L.push(v.summary||"")}
+  if(k){L.push(`\n## Знание дела: ${k.score}/5`);L.push(k.summary||"");arr(k.points).forEach(x=>L.push(`- ${x.text||x}${x.t?` [${x.t}]`:""}`))}
+  const li=(x)=>`- ${x.p}${x.type?` (${x.type})`:""}${x.t!=null&&x.t!==""?` [${typeof x.t==="number"?fmt(x.t):x.t}]`:""}${x.q?` — «${x.q}»`:""}`;
+  L.push("\n## Ответил хорошо");good.length?good.forEach(x=>L.push(li(x))):L.push("—");
+  L.push("\n## Где ошибся или поплыл");bad.length?bad.forEach(x=>L.push(li(x))):L.push("—");
+  L.push("\n## Как говорит");if(d&&d.speech&&d.speech.summary)L.push(d.speech.summary);
+  L.push(`Слова-паразиты ${m.fill.toFixed(1)} на 100 слов · неуверенность ${m.hedge.toFixed(1)} на 100 · говорил ${Math.round(m.per.cand.sec/m.tot*100)} % времени`);
   L.push("\n## Расшифровка\n");turnsOf(rec).forEach(t=>L.push(`**[${fmt(t.t0)}] ${spkName(rec,t.spk)}:** ${t.text}\n`));
-  L.push("\n---\nGrass Voice by AZBYYKA");
+  L.push("\n---\nGrass Voice");
   return L.join("\n");
 }
 function printReport(rec){
-  const d=rec.ai&&rec.ai.data,m=metrics(rec);
-  $("#print").innerHTML=`<h1 style="font:800 22px var(--body)">Собеседование: ${esc(recTitle(rec))}</h1><p>${esc(rec.position||"")} · ${dateStr(rec.created)} · ${fmtLong(rec.duration)}</p>
-    ${d?`<div class="card">${aiHTML(rec,d)}</div>`:""}<div class="card">${quickHTML(rec,m)}</div><div class="card">${qaHTML(rec)}</div><div class="card"><div class="transcript">${transcriptHTML(rec,{live:true})}</div></div><p>Grass Voice by AZBYYKA</p>`;
+  $("#print").innerHTML=`<h1 style="font-size:20px">${esc(recTitle(rec))}${rec.position?" — "+esc(rec.position):""}</h1><p>${dateStr(rec.created)} · ${fmtLong(rec.duration)}</p>
+    <div class="card">${blocksHTML(rec,{forPrint:true})}</div><div class="card"><div class="transcript">${transcriptHTML(rec,{live:true})}</div></div><p>Grass Voice</p>`;
   setTimeout(()=>window.print(),60);
 }
 
@@ -1665,7 +1455,7 @@ async function renderSettings(){
       <button class="btn" id="sVoiceMic">Записать с микрофона (40 с)</button>
       ${P?'<button class="btn danger" id="sVoiceReset">Сбросить голос</button>':""}
     </div>
-    <div id="sVoiceStatus">${enrollBusy?`<div class="row"><span class="spin" style="color:var(--accent)"></span><span>${esc(enrollMsg)}</span></div>`:""}</div>
+    <div id="sVoiceStatus">${enrollBusy?`<div class="row"><span class="spin" style="color:var(--ink)"></span><span>${esc(enrollMsg)}</span></div>`:""}</div>
   </div>
 
   <div class="card set" id="sStore">
@@ -1737,7 +1527,7 @@ async function renderSettings(){
   $("#sRestore").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restore(f)};
   $("#sWipe").onclick=e=>armed(e.currentTarget,async()=>{if(Recorder.A){toast("Сначала остановите запись","warn");return}await DB.clear("recs");await DB.clear("audio");await DB.clear("kv");RECS.clear();audioCache.clear();PROFILE=null;Folder.handle=null;Folder.state="none";S=JSON.parse(JSON.stringify(DEF));toast("Все данные удалены");renderSettings()},"Удалить всё безвозвратно?");
 }
-function setEnroll(msg){enrollMsg=msg;const el=$("#sVoiceStatus");if(el&&curView==="settings")el.innerHTML=enrollBusy?`<div class="row"><span class="spin" style="color:var(--accent)"></span><span>${esc(msg)}</span></div>`:""}
+function setEnroll(msg){enrollMsg=msg;const el=$("#sVoiceStatus");if(el&&curView==="settings")el.innerHTML=enrollBusy?`<div class="row"><span class="spin" style="color:var(--ink)"></span><span>${esc(msg)}</span></div>`:""}
 async function enrollFile(file,name){
   if(enrollBusy)return;enrollBusy=true;setEnroll("Читаю файл…");
   try{const pcm=await loadForEnroll(file);setEnroll("Запускаю распознавание голоса (первый раз скачивается около 100 МБ)…");const p=await enrollFromPCM(pcm,name,setEnroll);
