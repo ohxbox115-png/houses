@@ -607,7 +607,16 @@ function engineState(){
   if(Engine.w)return{cls:"loading",text:"Запускаю распознавание…"};
   return{cls:"",text:"Готовлю распознавание…"};
 }
-function refreshEngine(){const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
+function modelStatusHTML(){
+  const d=Engine.dlInfo();
+  if(Engine.error)return`<div class="row"><span style="color:var(--bad)">Загрузка прервалась: ${esc(Engine.error)}</span><button class="btn sm primary" data-warm>Скачать заново</button></div>`;
+  if(d)return`<div class="stack" style="gap:6px"><span>Скачивается: <b>${Math.round(d.a/1e6)}</b> из ${Math.round(d.b/1e6)} МБ (${Math.round(d.a/d.b*100)} %)</span><div class="bar"><i style="width:${Math.round(d.a/d.b*100)}%"></i></div></div>`;
+  if(Engine.asrReady&&Engine.svReady)return`<span style="color:var(--good)">● Скачана и готова — работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}.</span>`;
+  if(Engine.w)return`<div class="row"><span class="spin"></span><span>Проверяю и запускаю модель…</span></div>`;
+  return`<div class="row"><span class="muted">Ещё не скачана.</span><button class="btn sm primary" data-warm>Скачать сейчас</button></div>`;
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-warm]")){if(Engine.error)Engine.restart();Engine.warm();refreshEngine()}});
+function refreshEngine(){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML();const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
 
 /* =========================================================
    Звук
@@ -1441,7 +1450,8 @@ async function renderSettings(){
   </div>
   <div class="card set">
     <h2>Распознавание</h2>
-    <p>Максимальная модель, работает прямо в браузере, звук никуда не отправляется. ${d?`Скачивается: ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ.`:eng?`Готова, работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}.`:"Скачается один раз, около 1,2 ГБ."}</p>
+    <p>Максимальная модель, работает прямо в браузере, звук никуда не отправляется. Кнопка не нужна: модель качается сама, как только вы открываете сайт, — один раз, около 1,2 ГБ. Потом она хранится в браузере.</p>
+    <div id="sModel">${modelStatusHTML()}</div>
   </div>
   <div class="card set">
     <h2>Ключ Claude API</h2>
