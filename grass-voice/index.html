@@ -133,7 +133,8 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ink)}
 .recbtn.on{background:var(--bad);color:#fff}
 .recbtn:disabled{opacity:.5;cursor:wait}
 .rec-time{font:500 34px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.rec-hint{font-size:14px;color:var(--muted);max-width:44ch}
+.rec-hint{font-size:15px;color:var(--muted);max-width:44ch}
+.name-in{max-width:380px;text-align:center;font-size:17px!important;padding:11px 14px!important}
 .level{width:min(280px,80%);height:4px;border-radius:99px;background:var(--sunk);overflow:hidden}
 .level i{display:block;height:100%;width:0;background:var(--ink);transition:width .08s}
 .rec-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:12px 20px;border-top:1px solid var(--line)}
@@ -285,45 +286,36 @@ footer{max-width:880px;margin:0 auto;padding:0 20px 36px;color:var(--faint);font
     <a class="brand" href="#home">Grass Voice</a>
     <nav class="nav" aria-label="Разделы">
       <a href="#home" data-nav="home">Собеседования</a>
-      <a href="#new" data-nav="new">Запись</a>
       <a href="#settings" data-nav="settings">Настройки</a>
     </nav>
     <button class="engine" id="engine" type="button"><i></i><span id="engineText"></span></button>
   </div>
 </header>
-<div class="recbar" id="recbar" hidden><i></i><span>Идёт запись · <b id="recbarTime">00:00</b></span><a href="#new">Открыть</a></div>
+<div class="recbar" id="recbar" hidden><i></i><span>Идёт запись · <b id="recbarTime">00:00</b></span><a href="#home">Открыть</a></div>
 
 <main>
-  <section id="v-home" class="view" hidden></section>
-
   <section id="v-new" class="view" hidden>
-    <div class="page-h"><h1>Новая запись</h1></div>
-    <div class="grid2">
-      <label class="field"><span>Кандидат</span><input id="nCand" type="text" placeholder="Имя и фамилия" autocomplete="off"></label>
-      <label class="field"><span>Вакансия</span><input id="nPos" type="text" placeholder="Например: менеджер по продажам" autocomplete="off"></label>
-    </div>
     <div id="nProfile"></div>
     <div class="card">
       <div class="rec">
-        <button class="recbtn" id="recBtn" type="button" aria-label="Начать запись"><svg viewBox="0 0 24 24" fill="currentColor" id="recIco"></svg></button>
-        <div class="rec-time" id="recTime">00:00</div>
-        <div class="level" aria-hidden="true"><i id="lvl"></i></div>
-        <div class="rec-hint" id="recHint">Нажмите, чтобы начать запись</div>
-      </div>
-      <div class="rec-foot">
-        <span class="lbl" id="recQueue">Текст появляется после пауз в речи, кусками по 10–25 секунд.</span>
-        <label class="check"><input type="checkbox" id="liveDraft"> Черновик сразу</label>
+        <input id="nCand" class="name-in" type="text" placeholder="Имя и фамилия кандидата" autocomplete="off" aria-label="Имя и фамилия кандидата">
+        <button class="recbtn" id="recBtn" type="button" aria-label="Записать"><svg viewBox="0 0 24 24" fill="currentColor" id="recIco"></svg></button>
+        <div class="rec-time" id="recTime" hidden>00:00</div>
+        <div class="level" id="lvlBox" aria-hidden="true" hidden><i id="lvl"></i></div>
+        <div class="rec-hint" id="recHint">Записать</div>
       </div>
     </div>
-    <div class="card">
+    <div class="card" id="liveCard" hidden>
       <div class="card-h"><h2>Расшифровка</h2><span class="lbl" id="liveStat"></span></div>
       <div id="liveList" class="transcript"></div>
       <div id="draft" class="draft" hidden></div>
     </div>
-    <div class="drop" id="importZone"><span>Есть готовая запись? Перетащите сюда аудио или видео.</span>
-      <label class="btn sm"><input type="file" id="importFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Выбрать файл</label></div>
+    <input id="nPos" type="hidden"><input type="checkbox" id="liveDraft" hidden>
+    <input type="file" id="importFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>
+    <div id="importZone" hidden></div>
   </section>
 
+  <section id="v-home" class="view" hidden style="margin-top:20px"></section>
   <section id="v-int" class="view" hidden></section>
   <section id="v-settings" class="view" hidden></section>
 </main>
@@ -411,12 +403,12 @@ const MODELS={
 const MODEL_NAME=m=>m&&m.includes("large")?"Максимальная":m&&m.includes("small")?"Точная":m&&m.includes("base")?"Быстрая":"—";
 const LANGS={russian:"Русский",english:"English",ukrainian:"Українська"};
 const AIMODELS=["claude-opus-5-5","claude-sonnet-5-5"];
-const DEF={v:2,bossName:"Босс",lang:"russian",model:"auto",gpu:true,liveDraft:null,
+const DEF={v:3,bossName:"Босс",lang:"russian",model:"onnx-community/whisper-large-v3-turbo",folderAsked:false,gpu:true,liveDraft:null,
   ai:{provider:"copy",key:"",base:"",model:"",context:"",auto:true}};
 let S=JSON.parse(JSON.stringify(DEF));
 let PROFILE=null;
 async function loadSettings(){
-  try{const v=await DB.get("kv","settings");if(v){S={...DEF,...v,ai:{...DEF.ai,...(v.ai||{})}};if(!v.v){S.v=2;if(S.model==="onnx-community/whisper-small")S.model="auto"}}}catch(e){}
+  try{const v=await DB.get("kv","settings");if(v){S={...DEF,...v,ai:{...DEF.ai,...(v.ai||{})}};}S.model=DEF.model;S.lang="russian";S.liveDraft=false;S.ai.provider=S.ai.key?"anthropic":"copy"}catch(e){}
   try{PROFILE=await DB.get("kv","profile")||null}catch(e){}
 }
 const saveSettings=debounce(()=>DB.put("kv","settings",JSON.parse(JSON.stringify(S))).catch(()=>toast("Не удалось сохранить настройки","bad")),300);
@@ -446,21 +438,28 @@ const Folder={
     this.unicode=ok;return ok;
   },
   name(){return this.handle?this.handle.name:""},
-  dirName(rec,ascii){const d=new Date(rec.created),p=n=>String(n).padStart(2,"0"),who=ascii?(translit(rec.candidate)||"kandidat"):(rec.candidate||"Кандидат").replace(/[\\/:*?"<>|]+/g," ").trim().slice(0,60);return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}.${p(d.getMinutes())} ${who}`},
-  async write(dir,names,data){names=[].concat(names);let err;for(const n of names){try{const fh=await dir.getFileHandle(n,{create:true});const w=await fh.createWritable();await w.write(data);await w.close();return n}catch(e){err=e}}throw err},
+  dirName(rec,ascii){return ascii?(translit(rec.candidate)||"bez-imeni"):((rec.candidate||"Без имени").replace(/[\\/:*?"<>|]+/g," ").replace(/\s+/g," ").trim().slice(0,60)||"Без имени")},
+  stamp(rec){const d=new Date(rec.created),p=n=>String(n).padStart(2,"0");return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}.${p(d.getMinutes())}`},
+  async write(dir,name,data){const fh=await dir.getFileHandle(name,{create:true});const w=await fh.createWritable();await w.write(data);await w.close();return name},
   async syncRec(rec,{audio=false}={}){
     if(!this.handle||rec.status!=="ready")return false;
     if(this.state!=="granted"){await this.check();if(this.state!=="granted"){this.pending.add(rec.id);return false}}
     try{
-      let name=this.dirName(rec);
       if(this.unicode==null)await this.probe();
-      if(!this.unicode)name=this.dirName(rec,true);
-      if(rec.folderDir&&rec.folderDir!==name){try{await this.handle.removeEntry(rec.folderDir,{recursive:true})}catch(e){}audio=true}
-      const dir=await this.handle.getDirectoryHandle(name,{create:true});
-      await this.write(dir,this.unicode?"Отчёт.md":"otchet.md",new Blob([reportMD(rec)],{type:"text/markdown"}));
-      await this.write(dir,this.unicode?"Расшифровка.txt":"rasshifrovka.txt",new Blob([plainTranscript(rec)],{type:"text/plain"}));
-      if(audio||!rec.folderAudio){const a=await getAudio(rec);if(a){await this.write(dir,(this.unicode?"Запись.":"zapis.")+audioExt(a.type),a);rec.folderAudio=true}}
-      rec.folderDir=name;rec.folderAt=Date.now();this.pending.delete(rec.id);
+      const U=this.unicode,dirName=this.dirName(rec,!U),st=this.stamp(rec);
+      const names={rep:U?`${st} Отчёт.md`:`${st} otchet.md`,txt:U?`${st} Расшифровка.txt`:`${st} rasshifrovka.txt`};
+      if(rec.folderDir&&rec.folderDir!==dirName){
+        try{const old=await this.handle.getDirectoryHandle(rec.folderDir);for(const f of rec.folderFiles||[]){try{await old.removeEntry(f)}catch(e){}}
+          let left=0;for await(const _ of old.keys())left++;if(!left)await this.handle.removeEntry(rec.folderDir)}catch(e){}
+        audio=true;
+      }
+      const dir=await this.handle.getDirectoryHandle(dirName,{create:true}),files=[];
+      files.push(await this.write(dir,names.rep,new Blob([reportMD(rec)],{type:"text/markdown"})));
+      files.push(await this.write(dir,names.txt,new Blob([plainTranscript(rec)],{type:"text/plain"})));
+      const aName=(rec.folderFiles||[]).find(f=>/(Запись|zapis)\./.test(f));
+      if(audio||!rec.folderAudio||!aName){const a=await getAudio(rec);if(a){files.push(await this.write(dir,`${st} ${U?"Запись":"zapis"}.${audioExt(a.type)}`,a));rec.folderAudio=true}}
+      else files.push(aName);
+      rec.folderDir=dirName;rec.folderFiles=files;rec.folderAt=Date.now();this.pending.delete(rec.id);
       await DB.put("recs",rec.id,rec);return true;
     }catch(e){console.warn("Копия в папку не сохранилась:",e&&e.message);this.pending.add(rec.id);return false}
   },
@@ -491,19 +490,13 @@ function workerMain(){
   async function getASR(want,gpu){
     await lib();
     const g=gpu?await gpuInfo():null;
-    let model=want;
-    if(want==="auto")model=g&&g.f16?"onnx-community/whisper-large-v3-turbo":"onnx-community/whisper-small";
-    if(model.includes("large")&&!(g&&g.f16)){if(want!=="auto")post({type:"warn",msg:"«Максимальной» модели нужна видеокарта с WebGPU. Использую «Точную»."});model="onnx-community/whisper-small"}
-    const device=g?"webgpu":"wasm",key=model+"|"+device;
+    let model=want||"onnx-community/whisper-large-v3-turbo";
+    const device=g&&g.f16?"webgpu":"wasm",key=model;
     if(asr&&asrKey===key)return asr;
     if(asr){try{await asr.dispose()}catch(e){}asr=null}
-    if(device==="webgpu"){
-      try{asr=await load(model,"webgpu");dev="webgpu"}
-      catch(e){asr=null;
-        if(model.includes("large")){post({type:"warn",msg:"Видеокарте не хватило памяти на «Максимальную» модель. Беру «Точную»."});model="onnx-community/whisper-small";try{asr=await load(model,"webgpu");dev="webgpu"}catch(e2){asr=null}}
-        if(!asr){gpuBroken=true;post({type:"warn",msg:"Видеокарта недоступна, распознаю на процессоре."})}}
-    }
-    if(!asr){if(model.includes("large"))model="onnx-community/whisper-small";asr=await load(model,"wasm");dev="wasm"}
+    if(device==="webgpu"){try{asr=await load(model,"webgpu");dev="webgpu"}catch(e){asr=null;gpuBroken=true}}
+    if(!asr){try{asr=await load(model,"wasm");dev="wasm"}catch(e){asr=null}}
+    if(!asr){post({type:"warn",msg:"Компьютеру не хватило памяти на максимальную модель — распознаю облегчённой."});model="onnx-community/whisper-small";asr=await load(model,"wasm");dev="wasm"}
     asrKey=key;asrModel=model;
     post({type:"ready",what:"asr",device:dev,model,threads:self.crossOriginIsolated});
     return asr;
@@ -525,7 +518,7 @@ function workerMain(){
   async function run(pcm,opts,model,gpu){
     const a=await getASR(model,gpu&&!gpuBroken);
     try{return await a(pcm,opts)}
-    catch(e){if(dev==="webgpu"){gpuBroken=true;post({type:"warn",msg:"Сбой видеокарты, продолжаю на процессоре."});const b=await getASR(model,false);return await b(pcm,opts)}throw e}
+    catch(e){if(dev==="webgpu"){gpuBroken=true;try{await a.dispose()}catch(_){}asr=null;asrKey="";post({type:"warn",msg:"Сбой видеокарты, продолжаю на процессоре."});const b=await getASR(model,false);return await b(pcm,opts)}throw e}
   }
   async function transcribe(m){
     const sr=16000,x=m.pcm,dur=x.length/sr;
@@ -608,11 +601,11 @@ const Engine={
 function engineState(){
   const d=Engine.dlInfo(),jobs=[...Jobs.map.values()].filter(j=>!j.done);
   if(Engine.error)return{cls:"error",text:"Ошибка распознавания — нажмите, чтобы перезапустить"};
-  if(d)return{cls:"loading",text:`Скачиваю модели ${Math.round(d.a/d.b*100)} % · ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ`};
+  if(d)return{cls:"loading",text:`Скачиваю модель ${Math.round(d.a/d.b*100)} % · ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ`};
   if(jobs.length||Engine.busy){const left=jobs.reduce((s,j)=>s+Math.max(0,j.total-j.doneSec),0);return{cls:"busy",text:left>1?`Расшифровка · осталось ${fmtLong(left)} записи`:"Расшифровка…"}}
-  if(Engine.asrReady&&Engine.svReady)return{cls:"ready",text:`Готово · ${MODEL_NAME(Engine.model)} · ${Engine.device==="webgpu"?"видеокарта":"процессор"}`};
+  if(Engine.asrReady&&Engine.svReady)return{cls:"ready",text:"Готово к записи"};
   if(Engine.w)return{cls:"loading",text:"Запускаю распознавание…"};
-  return{cls:"",text:"Распознавание запустится при записи"};
+  return{cls:"",text:"Готовлю распознавание…"};
 }
 function refreshEngine(){const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
 
@@ -739,7 +732,7 @@ const Jobs={
     if(rec.status==="ready"&&Folder.handle)await Folder.syncRec(rec,{audio:true});
     this.emit(rec.id);
     if(rec.status==="ready"){toast(`Готово: ${recTitle(rec)}. Расшифровка и анализ открыты`,"good");
-      if(S.ai.auto&&S.ai.provider!=="copy"&&S.ai.key)runAI(rec).catch(()=>{})}
+      if(S.ai.key)runAI(rec).catch(()=>{})}
     else if(rec.status==="error")toast("Расшифровка не удалась: "+j.lastError,"bad",8000);
     else toast("В записи не найдено речи. Проверьте микрофон.","warn",7000);
   }
@@ -1076,7 +1069,7 @@ async function callLLM(system,user){
   const A=S.ai;if(!A.key)throw new Error("Укажите ключ API в настройках.");
   let r;
   try{
-    if(A.provider==="anthropic"){
+    if(true){
       const base=(A.base||"https://api.anthropic.com").replace(/\/+$/,"");
       r=await fetch(base+"/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":A.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
         body:JSON.stringify({model:A.model||"claude-opus-5-5",max_tokens:8000,system,messages:[{role:"user",content:user}]})});
@@ -1106,8 +1099,8 @@ async function runAI(rec){
    ========================================================= */
 function frame(){
   const A=Recorder.A;
-  if(A){const t=fmt(Recorder.elapsed());$("#recbarTime").textContent=t;if(curView==="new"){$("#recTime").textContent=t;$("#lvl").style.width=Math.round(Recorder.level()*100)+"%"}}
-  else if(curView==="new")$("#lvl").style.width="0";
+  if(A){const t=fmt(Recorder.elapsed());$("#recbarTime").textContent=t;if(curView==="home"){$("#recTime").textContent=t;$("#lvl").style.width=Math.round(Recorder.level()*100)+"%"}}
+  else if(curView==="home")$("#lvl").style.width="0";
   requestAnimationFrame(frame);
 }
 
@@ -1135,24 +1128,18 @@ async function renderHome(){
   const v=$("#v-home");const list=await allRecs();const st=await storageInfo();
   const q=listQuery.toLowerCase();const items=list.filter(r=>!q||(r.candidate+" "+r.position).toLowerCase().includes(q));
   v.innerHTML=`
-  <div class="page-h"><h1>Собеседования</h1>
-    <div class="row"><label class="btn"><input type="file" id="lImport" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Загрузить файл</label><a class="btn primary" href="#new">Новая запись</a></div></div>
-  ${profileNote()}
   ${!DB.ok?note("bad","<p>Браузер не даёт сохранять данные — записи пропадут после закрытия вкладки. Откройте сайт не в режиме «Инкогнито».</p>"):""}
-  ${list.length>6?`<input type="search" id="lSearch" placeholder="Поиск по имени или вакансии" value="${esc(listQuery)}">`:""}
+  ${list.length?`<div class="page-h" style="margin-top:8px"><h1 style="font-size:20px">Собеседования</h1>${list.length>6?`<input type="search" id="lSearch" placeholder="Поиск" value="${esc(listQuery)}" style="max-width:240px">`:""}</div>
   <div class="card list">${items.length?items.map(r=>{
       const d=r.ai&&r.ai.data&&r.ai.data.verdict;
       const sub=(d&&d.summary)||(r.segs[0]&&r.segs[0].text)||(r.status==="processing"?"Идёт расшифровка…":"Нет текста");
-      return`<a class="item" href="#i-${r.id}"><div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span>· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p></div><div class="item-r"><span class="meta">${dateShort(r.created)} · ${fmt(r.duration)}</span>${statusChip(r)}</div></a>`}).join("")
-    :list.length?'<div class="empty">Ничего не найдено.</div>':`<div class="empty"><b>Пока пусто</b><span>Запишите собеседование или загрузите готовую запись.</span></div>`}</div>
+      return`<a class="item" href="#i-${r.id}"><div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span>· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p></div><div class="item-r"><span class="meta">${dateShort(r.created)} · ${fmt(r.duration)}</span>${statusChip(r)}</div></a>`}).join(""):'<div class="empty">Ничего не найдено.</div>'}</div>`:""}
   <div class="foot">
-    <span>Хранится в этом браузере: ${pl(list.length,"собеседование","собеседования","собеседований")}, ${Math.round(st.used/1e6)} МБ вместе с моделями.</span>
-    ${Folder.handle?(Folder.state==="granted"?`<span>Копии — в папке «${esc(Folder.name())}».</span>`:`<span>Папка «${esc(Folder.name())}» ждёт разрешения.</span><button class="link" id="hAllow">Разрешить</button>`)
-      :Folder.supported?'<button class="link" id="hFolder">Сохранять копии в папку на компьютере</button>':""}
-    <a class="link" href="#settings">Где что хранится</a>
+    <span>${Folder.handle?(Folder.state==="granted"?`Записи сохраняются в папку «${esc(Folder.name())}» — у каждого кандидата своя папка.`:`Папка «${esc(Folder.name())}» ждёт разрешения.`):"Записи хранятся в этом браузере."}</span>
+    ${Folder.handle&&Folder.state!=="granted"?'<button class="link" id="hAllow">Разрешить</button>':!Folder.handle&&Folder.supported?'<button class="link" id="hFolder">Выбрать папку на компьютере</button>':""}
+    <label class="link" for="importFile">Загрузить готовую запись</label>
   </div>`;
   const s=$("#lSearch");if(s){s.oninput=()=>{listQuery=s.value;renderHome().then(()=>{const n=$("#lSearch");n.focus();n.setSelectionRange(n.value.length,n.value.length)})}}
-  $("#lImport").onchange=e=>{const f=e.target.files[0];e.target.value="";importFile(f,{})};
   if($("#hFolder"))$("#hFolder").onclick=pickFolder;
   if($("#hAllow"))$("#hAllow").onclick=async()=>{await Folder.allow();renderHome()};
 }
@@ -1160,19 +1147,16 @@ async function pickFolder(){try{await Folder.pick();toast(`Копии будут
 
 /* ---------- запись ---------- */
 function renderNew(){
-  $("#nProfile").innerHTML=profileNote();$("#nProfile").hidden=!PROFILE?false:true;
-  if(S.liveDraft==null){const ua=navigator.userAgent;S.liveDraft=!!(window.webkitSpeechRecognition||window.SpeechRecognition)&&/Chrome|Edg/.test(ua)}
-  $("#liveDraft").checked=!!S.liveDraft;
-  if(!(window.webkitSpeechRecognition||window.SpeechRecognition))$("#liveDraft").closest("label").hidden=true;
+  $("#nProfile").innerHTML=profileNote();
   setRecUI();renderLive();
-  if(!Recorder.A)Engine.warm();
 }
 function setRecUI(){
   const on=!!Recorder.A;
   $("#recBtn").classList.toggle("on",on);$("#recIco").innerHTML=on?ICON.stop:ICON.mic;
-  $("#recBtn").setAttribute("aria-label",on?"Закончить запись":"Начать запись");
-  $("#recHint").textContent=on?"Идёт запись. Нажмите, чтобы закончить — откроется разбор":"Нажмите, чтобы начать запись";
-  $("#recbar").hidden=!on||curView==="new";
+  $("#recBtn").setAttribute("aria-label",on?"Остановить":"Записать");
+  $("#recHint").textContent=on?"Идёт запись. Нажмите, чтобы остановить":"Записать";
+  $("#recTime").hidden=$("#lvlBox").hidden=!on;$("#liveCard").hidden=!on;
+  $("#recbar").hidden=!on||curView==="home";
   if(!on)$("#recTime").textContent="00:00";
 }
 function renderLive(){
@@ -1187,8 +1171,11 @@ function renderLive(){
 $("#recBtn").onclick=async()=>{
   const btn=$("#recBtn");btn.disabled=true;
   try{
-    if(Recorder.A){const rec=await Recorder.stop();setRecUI();if(rec){$("#nCand").value="";$("#nPos").value="";location.hash="#i-"+rec.id}}
-    else{await Recorder.start({candidate:$("#nCand").value,position:$("#nPos").value});setRecUI();renderLive()}
+    if(Recorder.A){const rec=await Recorder.stop();setRecUI();if(rec){$("#nCand").value="";location.hash="#i-"+rec.id}}
+    else{
+      if(Folder.supported&&!Folder.handle&&!S.folderAsked){S.folderAsked=true;saveSettings();toast("Выберите папку, куда складывать собеседования. У каждого кандидата будет своя папка.","",6000);try{await Folder.pick()}catch(e){}}
+      await Recorder.start({candidate:$("#nCand").value,position:""});setRecUI();renderLive();
+    }
   }catch(e){toast(e.message,"bad",9000)}
   finally{btn.disabled=false}
 };
@@ -1196,7 +1183,7 @@ $("#nCand").oninput=()=>{if(Recorder.A){Recorder.A.rec.candidate=$("#nCand").val
 $("#nPos").oninput=()=>{if(Recorder.A){Recorder.A.rec.position=$("#nPos").value.trim();saveRecSoon(Recorder.A.rec)}};
 $("#liveDraft").onchange=e=>{S.liveDraft=e.target.checked;saveSettings();if(Recorder.A){if(S.liveDraft)Recorder.startSpeech();else Recorder.stopSpeech()}};
 $("#importFile").onchange=e=>{const f=e.target.files[0];e.target.value="";importFile(f,{candidate:$("#nCand").value,position:$("#nPos").value})};
-(()=>{const z=$("#importZone");["dragenter","dragover"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.add("drag")}));["dragleave","drop"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.remove("drag")}));z.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)importFile(f,{candidate:$("#nCand").value,position:$("#nPos").value})})})();
+(()=>{const z=document.body;["dragenter","dragover"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();0}));["dragleave","drop"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();0}));z.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)importFile(f,{candidate:$("#nCand").value,position:$("#nPos").value})})})();
 
 /* ---------- расшифровка ---------- */
 function hl(text,q){const e=esc(text);if(!q)return e;const qq=esc(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return e.replace(new RegExp(qq,"gi"),m=>`<mark>${m}</mark>`)}
@@ -1237,9 +1224,7 @@ async function renderInt(id){
           <button data-act="copy">Скопировать отчёт</button>
         </div></details>
         <details class="menu"><summary class="btn">Ещё</summary><div class="pop">
-          <button data-act="relabel">Заново определить, кто говорит</button>
           <button data-act="swap">Поменять местами босса и кандидата</button>
-          <button data-act="teach">Уточнить голос босса по этой записи</button>
           <button data-act="redo" ${rec.audio?"":"disabled"}>Расшифровать заново</button>
           <button data-act="del" style="color:var(--bad)">Удалить собеседование</button>
         </div></details>
@@ -1267,7 +1252,7 @@ function renderTimeline(){
 function renderSaved(){
   const el=$("#iSaved");if(!el||!INT)return;const rec=INT.rec;
   el.innerHTML=`<span><i></i>Сохранено в браузере${rec.audio?": звук, текст и разбор":""}</span>
-    ${Folder.handle?(rec.folderDir?`<span><i></i>Копия: ${esc(Folder.name())} / ${esc(rec.folderDir)}</span>`:Folder.state!=="granted"?`<span><i class="off"></i>Папка ждёт разрешения</span><button class="link" data-act="allowFolder">Разрешить</button>`:`<span><i class="off"></i>Копия в папку появится после расшифровки</span>`)
+    ${Folder.handle?(rec.folderDir?`<span><i></i>В папке: ${esc(Folder.name())} / ${esc(rec.folderDir)}</span>`:Folder.state!=="granted"?`<span><i class="off"></i>Папка ждёт разрешения</span><button class="link" data-act="allowFolder">Разрешить</button>`:`<span><i class="off"></i>Копия в папку появится после расшифровки</span>`)
       :Folder.supported?`<button class="link" data-act="pickFolder">Сохранять копии в папку</button>`:""}`;
 }
 function renderIntProc(){
@@ -1342,15 +1327,14 @@ function blocksHTML(rec,{forPrint=false}={}){
 }
 function ctaHTML(rec){
   const A=S.ai,has=!!(rec.ai&&rec.ai.data),run=AIRUN.has(rec.id);
-  const req=`<label class="field"><span>Что важно в кандидате (необязательно — сделает разбор точнее)</span><textarea id="aiReq" rows="2" placeholder="Например: опыт продаж B2B, знание 1С, честность">${esc(rec.req||"")}</textarea></label>`;
   if(run)return`<div class="cta"><div class="row"><span class="spin"></span><span>Claude разбирает собеседование… Обычно 1–2 минуты.</span></div></div>`;
-  const inner=A.provider==="copy"?`${req}<div class="steps">
-      <div><div class="stack" style="gap:6px"><span>Скопируйте запрос — в нём инструкция и вся расшифровка.</span><div><button class="btn primary" data-act="copyPrompt">Скопировать запрос</button></div></div></div>
-      <div><span>Вставьте его в новый чат на <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a> и отправьте.</span></div>
-      <div><div class="stack" style="gap:6px"><span>Скопируйте ответ Claude целиком и вставьте сюда.</span><textarea id="aiPaste" rows="3" placeholder="Ответ начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
-    </div>`:`${req}<div class="row"><button class="btn primary" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button><span class="lbl">${esc(A.provider==="anthropic"?(A.model||"claude-opus-5-5"):(A.model||""))}</span></div>${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}`;
-  if(has)return`<div class="cta"><details><summary>Обновить разбор Claude</summary><div class="stack" style="margin-top:12px">${inner}</div></details></div>`;
-  return`<div class="cta"><div class="stack" style="gap:4px"><b>Разбор Claude</b><span class="lbl">Итог, знание дела, сильные и слабые ответы. Заодно Claude исправит ошибки распознавания в расшифровке.</span></div>${inner}</div>`;
+  const inner=A.key?`<div class="row"><button class="btn primary" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button></div>${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}`
+    :`<div class="steps">
+      <div><div class="stack" style="gap:6px"><span>Нажмите — запрос скопируется и откроется Claude. Вставьте его (⌘V) и отправьте.</span><div><button class="btn primary" data-act="copyPrompt">Открыть Claude с запросом</button></div></div></div>
+      <div><div class="stack" style="gap:6px"><span>Скопируйте ответ Claude и вставьте сюда.</span><textarea id="aiPaste" rows="3" placeholder="Ответ начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
+    </div>`;
+  if(has)return`<div class="cta"><details><summary>Обновить разбор</summary><div class="stack" style="margin-top:12px">${inner}</div></details></div>`;
+  return`<div class="cta"><div class="stack" style="gap:4px"><b>Разбор Claude</b><span class="lbl">Итог, знание дела, сильные и слабые ответы. Заодно Claude поправит ошибки в расшифровке.</span></div>${inner}</div>`;
 }
 function analysisHTML(rec){
   const d=rec.ai&&rec.ai.data,stale=d&&rec.ai.hash!==segHash(rec);
@@ -1380,7 +1364,7 @@ $("#v-int").addEventListener("click",async e=>{
   else if(act==="redo2"){if(!Jobs.map.has(rec.id))reprocess(rec).then(()=>renderInt(rec.id))}
   else if(act==="del")armed(b,async()=>{await deleteRec(rec.id);INT=null;toast("Собеседование удалено");location.hash="#home"},"Удалить навсегда?");
   else if(act==="runAI")runAI(rec);
-  else if(act==="copyPrompt"){const{system,user}=buildPrompt(rec);flash(b,await copyText(system+"\n\n=====\n\n"+user)?"Скопировано — вставьте в claude.ai":"Не удалось скопировать")}
+  else if(act==="copyPrompt"){const{system,user}=buildPrompt(rec);const ok=await copyText(system+"\n\n=====\n\n"+user);try{window.open("https://claude.ai/new","_blank","noopener")}catch(e){}flash(b,ok?"Скопировано — вставьте в Claude":"Не удалось скопировать")}
   else if(act==="applyPaste"){try{const data=parseAI($("#aiPaste").value);setAI(rec,data,"claude.ai");await saveRec(rec);renderTimeline();renderIntBody();renderIntProc();window.scrollTo({top:$("#iBody").getBoundingClientRect().top+scrollY-120,behavior:"smooth"});toast(rec.ai.fixed?`Разбор готов. Исправлено ошибок в расшифровке: ${rec.ai.fixed}`:"Разбор готов")}catch(err){toast(err.message,"bad",8000)}}
   else if(act==="undoFix"){const n=undoFixes(rec);if(rec.ai)rec.ai.hash=segHash(rec);await saveRec(rec);renderIntBody();toast(`Вернул исходный текст: ${pl(n,"фраза","фразы","фраз")}`)}
   else if(act==="pickFolder")pickFolder();
@@ -1439,93 +1423,47 @@ function printReport(rec){
    ========================================================= */
 let enrollBusy=false,enrollMsg="";
 async function renderSettings(){
-  const v=$("#v-settings"),P=PROFILE,A=S.ai,st=await storageInfo();
-  const gpuOk="gpu" in navigator;const list=await allRecs();
+  const v=$("#v-settings"),P=PROFILE,st=await storageInfo(),list=await allRecs();
+  const eng=Engine.asrReady&&Engine.svReady,d=Engine.dlInfo();
   v.innerHTML=`<div class="page-h"><h1>Настройки</h1></div>
-  <div class="card set" id="sVoice">
+  <div class="card set">
     <h2>Голос босса</h2>
-    <p>По образцу голоса программа понимает, где в записи говорит босс, а где кандидат. Подойдёт любая запись, где он говорит 1–5 минут: голосовое сообщение, запись созвона. Если в файле есть и другие голоса, программа возьмёт тот, что звучит чаще всего.</p>
-    <label class="field" style="max-width:360px"><span>Как подписывать босса в расшифровке</span><input type="text" id="sBossName" value="${esc(S.bossName)}" placeholder="Например: Александр"></label>
-    <div class="profile-card"><div class="vp ${P?"":"off"}">${ICON.voice}</div><div>
-      ${P?`<b>Голос настроен</b><div class="lbl">${fmtLong(P.secs)} речи в образце · ${pl((P.sources||[]).length,"источник","источника","источников")}: ${esc((P.sources||[]).slice(-3).join(", "))}${P.dropped?` · отброшено ${pl(P.dropped,"фрагмент","фрагмента","фрагментов")} с другими голосами`:""}</div>`
-        :`<b>Голос не настроен</b><div class="lbl">Без образца программа разделит двух людей, но может перепутать, кто из них босс.</div>`}
-    </div></div>
-    <div class="row">
-      <label class="btn ${P?"":"primary"}"><input type="file" id="sVoiceFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.aac" multiple hidden>${P?"Добавить ещё образец":"Загрузить запись голоса"}</label>
-      <button class="btn" id="sVoiceMic">Записать с микрофона (40 с)</button>
-      ${P?'<button class="btn danger" id="sVoiceReset">Сбросить голос</button>':""}
-    </div>
-    <div id="sVoiceStatus">${enrollBusy?`<div class="row"><span class="spin" style="color:var(--ink)"></span><span>${esc(enrollMsg)}</span></div>`:""}</div>
+    <p>По нему программа отличает босса от кандидата. Загрузите любую запись, где он говорит 1–5 минут.</p>
+    <label class="field" style="max-width:340px"><span>Как подписывать в расшифровке</span><input type="text" id="sBossName" value="${esc(S.bossName)}" placeholder="Например: Александр"></label>
+    <div class="profile-card"><div class="vp ${P?"":"off"}">${ICON.voice}</div><div>${P?`<b>Голос настроен</b><div class="lbl">${fmtLong(P.secs)} речи в образце</div>`:`<b>Голос не настроен</b><div class="lbl">Без него программа может перепутать, кто из двоих босс.</div>`}</div></div>
+    <div class="row"><label class="btn ${P?"":"primary"}"><input type="file" id="sVoiceFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.aac" multiple hidden>${P?"Добавить ещё запись":"Загрузить запись голоса"}</label><button class="btn" id="sVoiceMic">Записать с микрофона</button>${P?'<button class="btn ghost danger" id="sVoiceReset">Сбросить</button>':""}</div>
+    <div id="sVoiceStatus">${enrollBusy?`<div class="row"><span class="spin"></span><span>${esc(enrollMsg)}</span></div>`:""}</div>
   </div>
-
-  <div class="card set" id="sStore">
-    <h2>Где хранятся записи</h2>
-    <p>Каждое собеседование сохраняется автоматически, прямо во время записи: звук, расшифровка и анализ. Хранится в памяти этого браузера на этом компьютере — в интернет ничего не уходит. ${st.quota?`Сейчас занято ${Math.round(st.used/1e6)} МБ из ${Math.round(st.quota/1e9)} ГБ, собеседований: ${list.length}.`:""}</p>
-    ${!DB.ok?note("bad","<p><b>Сохранение недоступно</b> — вероятно, открыт режим «Инкогнито».</p>"):""}
-    <div class="profile-card"><div class="vp ${Folder.handle?"":"off"}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2Z"/></svg></div><div>
-      ${Folder.handle?`<b>Копии в папке «${esc(Folder.name())}»</b><div class="lbl">${Folder.state==="granted"?"Для каждого собеседования — своя папка: Запись, Отчёт.md и Расшифровка.txt. Обновляются сами.":"Браузер просит заново разрешить доступ к папке — так он защищает ваши файлы."}</div>`
-        :`<b>Копии в обычную папку</b><div class="lbl">${Folder.supported?"Выберите папку на компьютере, и программа будет класть туда звук, отчёт и расшифровку каждого собеседования. Так записи не потеряются, даже если очистить браузер.":"Этот браузер не умеет сохранять в папку. В Chrome или Edge это работает; здесь пользуйтесь кнопкой «Скачать» в собеседовании и резервной копией."}</div>`}
-    </div></div>
-    <div class="row">
-      ${Folder.supported?(Folder.handle?(Folder.state!=="granted"?'<button class="btn primary" id="sFAllow">Разрешить доступ</button>':'<button class="btn" id="sFSync">Обновить копии сейчас</button>')+'<button class="btn" id="sFPick">Сменить папку</button><button class="btn ghost danger" id="sFForget">Не сохранять в папку</button>':'<button class="btn primary" id="sFPick">Выбрать папку</button>'):""}
-    </div>
-    <div class="row"><button class="btn" id="sBackup">Скачать резервную копию</button><label class="check"><input type="checkbox" id="sBackupAudio"> вместе со звуком</label><label class="btn ghost"><input type="file" id="sRestore" accept=".json,application/json" hidden>Восстановить из копии</label></div>
-  </div>
-
   <div class="card set">
-    <h2>Распознавание речи</h2>
-    <p>Речь распознаётся прямо в браузере. Звук никуда не отправляется. Модели скачиваются один раз и потом берутся из памяти браузера.${Engine.asrReady?` Сейчас работает: <b>${MODEL_NAME(Engine.model)}</b>, ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}${window.crossOriginIsolated?", многопоточно":""}.`:""}</p>
-    <div class="opts" style="grid-template-columns:repeat(4,minmax(0,1fr))">${Object.entries(MODELS).map(([k,m])=>{const dis=m.gpuOnly&&!gpuOk;return`<label class="opt ${dis?"dis":""}"><input type="radio" name="model" value="${k}" ${S.model===k?"checked":""} ${dis?"disabled":""}><b>${m.name}</b><span>${m.desc}${dis?" В этом браузере нет WebGPU.":""}</span></label>`}).join("")}</div>
-    <div class="grid2">
-      <label class="field"><span>Язык разговора</span><select id="sLang">${Object.entries(LANGS).map(([k,n])=>`<option value="${k}" ${S.lang===k?"selected":""}>${n}</option>`).join("")}</select></label>
-      <div class="field"><span>Ускорение</span><label class="check" style="padding-top:10px"><input type="checkbox" id="sGpu" ${S.gpu?"checked":""} ${gpuOk?"":"disabled"}> Использовать видеокарту (в разы быстрее)${gpuOk?"":" — недоступно в этом браузере"}</label></div>
-    </div>
-    <div class="row"><button class="btn" id="sWarm">Скачать модели сейчас</button><span class="lbl" id="sWarmTxt"></span></div>
+    <h2>Папка для собеседований</h2>
+    <p>${Folder.supported?"Каждое собеседование сохраняется в папку кандидата: «Имя Фамилия / дата Запись, Расшифровка, Отчёт». Копия остаётся и в браузере.":"Этот браузер не умеет сохранять в папку — используйте Chrome. Здесь записи хранятся в браузере, их можно скачать из каждого собеседования."}</p>
+    ${Folder.supported?`<div class="row">${Folder.handle?`<span>Папка: <b>${esc(Folder.name())}</b>${Folder.state!=="granted"?" — ждёт разрешения":""}</span>${Folder.state!=="granted"?'<button class="btn primary" id="sFAllow">Разрешить</button>':""}<button class="btn" id="sFPick">Сменить</button>`:'<button class="btn primary" id="sFPick">Выбрать папку</button>'}</div>`:""}
   </div>
-
   <div class="card set">
-    <h2>Глубокий анализ</h2>
-    <p>Разбор делает Claude. Без ключа API программа готовит запрос: вы вставляете его в claude.ai, а ответ — обратно. С ключом всё происходит само.</p>
-    <div class="opts">
-      <label class="opt"><input type="radio" name="prov" value="copy" ${A.provider==="copy"?"checked":""}><b>Через claude.ai</b><span>Без ключа, копировать и вставить. Работает из России</span></label>
-      <label class="opt"><input type="radio" name="prov" value="anthropic" ${A.provider==="anthropic"?"checked":""}><b>API Anthropic</b><span>Автоматически. Нужен ключ; из России — через прокси</span></label>
-      <label class="opt"><input type="radio" name="prov" value="openai" ${A.provider==="openai"?"checked":""}><b>OpenRouter и другие</b><span>Любой сервис с OpenAI-совместимым API</span></label>
-    </div>
-    <div class="grid2" ${A.provider==="copy"?"hidden":""}>
-      <label class="field"><span>Ключ API</span><input type="password" id="sKey" value="${esc(A.key)}" placeholder="${A.provider==="anthropic"?"sk-ant-…":"sk-or-…"}" autocomplete="off"></label>
-      <label class="field"><span>Модель</span>${A.provider==="anthropic"?`<select id="sModel">${AIMODELS.map(x=>`<option ${(A.model||"claude-opus-5-5")===x?"selected":""}>${x}</option>`).join("")}</select>`:`<input type="text" id="sModel" value="${esc(A.model)}" placeholder="например anthropic/claude-opus-4.5">`}</label>
-      <label class="field"><span>Адрес API (необязательно)</span><input type="text" id="sBase" value="${esc(A.base)}" placeholder="${A.provider==="anthropic"?"https://api.anthropic.com":"https://openrouter.ai/api/v1"}"></label>
-      <div class="field"><span>&nbsp;</span><div class="row"><label class="check"><input type="checkbox" id="sAuto" ${A.auto?"checked":""}> Запускать разбор сразу после расшифровки</label><button class="btn sm" id="sTest">Проверить</button></div></div>
-    </div>
-    ${A.provider!=="copy"?note("info","<p>Ключ хранится только в этом браузере и отправляется только выбранному сервису.</p>"):""}
-    <label class="field"><span>О компании и что важно в людях — учитывается в каждом разборе</span><textarea id="sCtx" rows="4" placeholder="Например: дилерская компания, 25 человек, ценим самостоятельность и честность, много общения с клиентами по телефону.">${esc(A.context)}</textarea></label>
+    <h2>Распознавание</h2>
+    <p>Максимальная модель, работает прямо в браузере, звук никуда не отправляется. ${d?`Скачивается: ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ.`:eng?`Готова, работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}.`:"Скачается один раз, около 1,2 ГБ."}</p>
   </div>
-
   <div class="card set">
-    <h2>Удаление</h2>
-    <p>Удалит все собеседования, звук, голос босса и настройки из этого браузера. Копии в папке на компьютере останутся.</p>
-    <div><button class="btn danger" id="sWipe">Удалить все данные</button></div>
+    <h2>Ключ Claude API</h2>
+    <p>Необязательно. С ключом разбор делается сам сразу после расшифровки. Без ключа — одной кнопкой через claude.ai.</p>
+    <div class="row" style="max-width:520px"><input type="password" id="sKey" value="${esc(S.ai.key)}" placeholder="sk-ant-…" autocomplete="off" style="flex:1"><button class="btn" id="sTest" ${S.ai.key?"":"disabled"}>Проверить</button></div>
+  </div>
+  <div class="card set">
+    <h2>Данные</h2>
+    <p>В браузере: ${pl(list.length,"собеседование","собеседования","собеседований")}, ${Math.round(st.used/1e6)} МБ вместе с моделью.</p>
+    <div class="row"><button class="btn" id="sBackup">Скачать копию всего</button><label class="btn ghost"><input type="file" id="sRestore" accept=".json,application/json" hidden>Восстановить</label><button class="btn ghost danger" id="sWipe">Удалить всё</button></div>
   </div>`;
   $("#sBossName").oninput=e=>{S.bossName=e.target.value.trim()||"Босс";saveSettings()};
   $("#sVoiceFile").onchange=async e=>{const files=[...e.target.files];e.target.value="";for(const f of files)await enrollFile(f,f.name)};
   $("#sVoiceMic").onclick=()=>enrollMic();
   if($("#sVoiceReset"))$("#sVoiceReset").onclick=e=>armed(e.currentTarget,async()=>{PROFILE=null;await saveProfile();toast("Голос сброшен");renderSettings()});
-  if($("#sFPick"))$("#sFPick").onclick=pickFolder;
+  if($("#sFPick"))$("#sFPick").onclick=async()=>{await pickFolder();renderSettings()};
   if($("#sFAllow"))$("#sFAllow").onclick=async()=>{await Folder.allow();renderSettings()};
-  if($("#sFSync"))$("#sFSync").onclick=async e=>{e.currentTarget.disabled=true;await Folder.syncAll();toast("Копии обновлены","good");renderSettings()};
-  if($("#sFForget"))$("#sFForget").onclick=e=>armed(e.currentTarget,async()=>{await Folder.forget();toast("Больше не сохраняю в папку");renderSettings()});
-  $$('input[name=model]').forEach(r=>r.onchange=()=>{S.model=r.value;saveSettings();toast("Модель сменится со следующей записи")});
-  $("#sLang").onchange=e=>{S.lang=e.target.value;saveSettings()};
-  $("#sGpu").onchange=e=>{S.gpu=e.target.checked;saveSettings()};
-  $("#sWarm").onclick=async e=>{const b=e.currentTarget;b.disabled=true;$("#sWarmTxt").textContent="Скачиваю… прогресс — вверху справа";await Engine.warm();b.disabled=false;if(curView==="settings")renderSettings()};
-  $$('input[name=prov]').forEach(r=>r.onchange=()=>{S.ai.provider=r.value;if(r.value==="anthropic"&&!AIMODELS.includes(S.ai.model))S.ai.model="claude-opus-5-5";if(r.value==="openai"&&AIMODELS.includes(S.ai.model))S.ai.model="";saveSettings();renderSettings()});
-  const bind=(id,k)=>{const el=$(id);if(el)el.oninput=el.onchange=()=>{S.ai[k]=el.type==="checkbox"?el.checked:el.value.trim();saveSettings()}};
-  bind("#sKey","key");bind("#sModel","model");bind("#sBase","base");bind("#sAuto","auto");
-  $("#sCtx").oninput=e=>{S.ai.context=e.target.value;saveSettings()};
-  if($("#sTest"))$("#sTest").onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="Проверяю…";try{const t=await callLLM("Отвечай одним словом.","Скажи: работает");toast("Подключение работает: "+t.slice(0,40),"good")}catch(err){toast(err.message,"bad",8000)}b.disabled=false;b.textContent="Проверить"};
-  $("#sBackup").onclick=()=>backup($("#sBackupAudio").checked);
+  $("#sKey").oninput=e=>{S.ai.key=e.target.value.trim();S.ai.provider=S.ai.key?"anthropic":"copy";$("#sTest").disabled=!S.ai.key;saveSettings()};
+  $("#sTest").onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="Проверяю…";try{const t=await callLLM("Отвечай одним словом.","Скажи: работает");toast("Ключ работает: "+t.slice(0,40))}catch(err){toast(err.message,"bad",8000)}b.disabled=false;b.textContent="Проверить"};
+  $("#sBackup").onclick=()=>backup(true);
   $("#sRestore").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restore(f)};
-  $("#sWipe").onclick=e=>armed(e.currentTarget,async()=>{if(Recorder.A){toast("Сначала остановите запись","warn");return}await DB.clear("recs");await DB.clear("audio");await DB.clear("kv");RECS.clear();audioCache.clear();PROFILE=null;Folder.handle=null;Folder.state="none";S=JSON.parse(JSON.stringify(DEF));toast("Все данные удалены");renderSettings()},"Удалить всё безвозвратно?");
+  $("#sWipe").onclick=e=>armed(e.currentTarget,async()=>{if(Recorder.A){toast("Сначала остановите запись","bad");return}await DB.clear("recs");await DB.clear("audio");await DB.clear("kv");RECS.clear();audioCache.clear();PROFILE=null;Folder.handle=null;Folder.state="none";S=JSON.parse(JSON.stringify(DEF));toast("Все данные удалены");renderSettings()},"Удалить безвозвратно?");
 }
 function setEnroll(msg){enrollMsg=msg;const el=$("#sVoiceStatus");if(el&&curView==="settings")el.innerHTML=enrollBusy?`<div class="row"><span class="spin" style="color:var(--ink)"></span><span>${esc(msg)}</span></div>`:""}
 async function enrollFile(file,name){
@@ -1573,24 +1511,24 @@ async function restore(file){
 let curView="";
 function route(){
   const h=location.hash.slice(1)||"home";let v="home",id=null;
-  if(h==="new")v="new";else if(h==="settings")v="settings";else if(h.startsWith("i-")){v="int";id=h.slice(2)}
+  if(h==="settings")v="settings";else if(h.startsWith("i-")){v="int";id=h.slice(2)}
   if(curView==="int"&&v!=="int"){const p=$("#player");if(p)p.pause()}
   curView=v;
-  $$(".view").forEach(x=>x.hidden=x.id!=="v-"+v);
+  $$(".view").forEach(x=>x.hidden=!(x.id==="v-"+v||(v==="home"&&x.id==="v-new")));
   $$("[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===v||(v==="int"&&a.dataset.nav==="home")));
   $("#recbar").hidden=!Recorder.A||v==="new";
-  if(v==="home")renderHome();else if(v==="new")renderNew();else if(v==="settings")renderSettings();else renderInt(id);
+  if(v==="home"){renderNew();renderHome()}else if(v==="settings")renderSettings();else renderInt(id);
   window.scrollTo(0,0);
 }
 addEventListener("hashchange",route);
 $("#engine").onclick=()=>{if(Engine.error){Engine.restart();Engine.warm();toast("Перезапускаю распознавание")}else location.hash="#settings"};
 Jobs.on(id=>{
-  if(curView==="new"&&Recorder.A&&Recorder.A.rec.id===id)renderLive();
+  if(curView==="home"&&Recorder.A&&Recorder.A.rec.id===id)renderLive();
   if(curView==="int"&&INT&&INT.rec.id===id){renderIntProc();if(!Jobs.map.has(id)){renderInt(id)}else{renderTimeline();if(INT.tab==="tr"&&!INT.edit)throttledBody()}}
   if(curView==="home")throttledHome();
 });
 const throttledBody=debounce(()=>renderIntBody(),600),throttledHome=debounce(()=>renderHome(),800);
-setInterval(()=>{if(Engine.dlInfo()){if(curView==="int")renderIntProc();if(curView==="new"&&Recorder.A)renderLive()}},1500);
+setInterval(()=>{if(Engine.dlInfo()){if(curView==="int")renderIntProc();if(curView==="home"&&Recorder.A)renderLive()}},1500);
 addEventListener("beforeunload",e=>{if(Recorder.A||[...Jobs.map.values()].some(j=>!j.done)){e.preventDefault();e.returnValue="Запись или расшифровка ещё идёт"}});
 document.addEventListener("click",e=>{$$("details.menu[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})});
 document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&Folder.handle){const was=Folder.state;await Folder.check();if(was!==Folder.state)refreshView()}});
@@ -1599,7 +1537,7 @@ document.addEventListener("visibilitychange",async()=>{if(document.visibilitySta
   await DB.ready;await loadSettings();await Folder.load();
   const list=await allRecs();
   for(const r of list){if(r.status==="processing"){r.status="error";r.procError="Расшифровка прервалась: вкладку закрыли раньше, чем она закончилась.";await saveRec(r,{touch:false})}}
-  refreshEngine();route();requestAnimationFrame(frame);
+  refreshEngine();route();requestAnimationFrame(frame);Engine.warm();
 })();
 </script>
 </body>
