@@ -1,0 +1,1816 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Grass Voice</title>
+<meta name="description" content="Grass Voice by AZBYYKA — запись собеседований, разделение голосов, расшифровка и анализ кандидата">
+<meta name="theme-color" content="#0E0E13">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3CradialGradient id='a' cx='30%25' cy='30%25'%3E%3Cstop offset='0' stop-color='%23FF5FA2'/%3E%3Cstop offset='1' stop-color='%238B6CFF'/%3E%3C/radialGradient%3E%3C/defs%3E%3Ccircle cx='32' cy='32' r='30' fill='url(%23a)'/%3E%3Cpath d='M18 34h4v-6h-4zm8 8h4V22h-4zm8-4h4V26h-4zm8-6h4v-4h-4z' fill='%23fff'/%3E%3C/svg%3E">
+<script>
+/* многопоточное распознавание: на хостингах без своих заголовков включаем изоляцию через service worker */
+(function(){try{
+  if(window.crossOriginIsolated||!window.isSecureContext||!("serviceWorker" in navigator))return;
+  if(location.protocol==="file:")return;
+  var k="gv-coi-reload";
+  navigator.serviceWorker.register("sw.js").then(function(reg){
+    function go(){try{if(sessionStorage.getItem(k))return;sessionStorage.setItem(k,"1")}catch(e){return}location.reload()}
+    if(reg.active&&!navigator.serviceWorker.controller)go();
+    reg.addEventListener("updatefound",function(){var w=reg.installing;w&&w.addEventListener("statechange",function(){if(w.state==="activated")go()})});
+  }).catch(function(){});
+}catch(e){}})();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700&family=Onest:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Тёмное «музыкальное» приложение: верхняя панель, крупная живая волна на записи, карточки с мягкими градиентами */
+:root{
+  --bg:#0E0E13; --bg2:#13131A; --panel:#1A1A22; --panel2:#22222C; --hover:#2A2A36; --line:#2B2B37; --line2:#363644;
+  --ink:#F5F5F8; --muted:#A4A4B6; --faint:#6F6F84;
+  --accent:#FFD43B; --accent-ink:#17140A; --accent-soft:rgba(255,212,59,.14);
+  --violet:#8B6CFF; --pink:#FF5FA2; --orange:#FF9447; --cyan:#4DD6FF;
+  --boss:#A08FFF; --boss-soft:rgba(160,143,255,.16); --cand:#FF9F68; --cand-soft:rgba(255,159,104,.16); --other:#5FD3C6; --other-soft:rgba(95,211,198,.16);
+  --good:#5CD68C; --good-soft:rgba(92,214,140,.14); --warn:#FFC24D; --warn-soft:rgba(255,194,77,.14); --bad:#FF6B6B; --bad-soft:rgba(255,107,107,.14); --info:#7FB2FF; --info-soft:rgba(127,178,255,.14);
+  --brand:"Unbounded","Onest",system-ui,sans-serif;
+  --body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --r:20px; color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;background:var(--bg)}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);min-height:100vh;-webkit-font-smoothing:antialiased}
+body::before{content:"";position:fixed;inset:-20vh -10vw auto;height:70vh;z-index:-1;pointer-events:none;
+  background:radial-gradient(40% 50% at 20% 30%,rgba(139,108,255,.16),transparent 70%),radial-gradient(35% 45% at 80% 20%,rgba(255,95,162,.10),transparent 70%)}
+a{color:var(--accent)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+h1,h2,h3{margin:0;text-wrap:balance}
+p{margin:0}
+
+/* шапка */
+.top{position:sticky;top:0;z-index:30;background:rgba(14,14,19,.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:1px solid var(--line)}
+.top-in{max-width:1160px;margin:0 auto;display:flex;align-items:center;gap:18px;padding:12px max(16px,env(safe-area-inset-right)) 12px max(16px,env(safe-area-inset-left));flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--ink);margin-right:auto}
+.logo{width:34px;height:34px;border-radius:50%;flex:none;background:conic-gradient(from 0deg,var(--violet),var(--pink),var(--orange),var(--accent),var(--cyan),var(--violet));position:relative;animation:rot 12s linear infinite}
+.logo::after{content:"";position:absolute;inset:3px;border-radius:50%;background:radial-gradient(circle at 35% 30%,rgba(255,255,255,.55),transparent 45%),radial-gradient(circle at 60% 70%,rgba(14,14,19,.25),transparent 60%)}
+@keyframes rot{to{transform:rotate(360deg)}}
+.brand-t{display:grid;line-height:1.05}
+.brand-t b{font:700 18px/1.1 var(--brand);letter-spacing:-.01em}
+.brand-t span{font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);font-weight:600}
+.nav{display:flex;gap:4px;background:var(--panel);border-radius:99px;padding:4px}
+.nav a{padding:8px 16px;border-radius:99px;font-weight:600;font-size:14px;color:var(--muted);text-decoration:none;white-space:nowrap}
+.nav a:hover{color:var(--ink)}
+.nav a.on{background:var(--ink);color:var(--bg)}
+.engine{display:inline-flex;align-items:center;gap:8px;border:0;background:var(--panel);border-radius:99px;padding:8px 14px;font-size:12.5px;color:var(--muted);cursor:pointer;max-width:100%;text-align:left}
+.engine i{width:8px;height:8px;border-radius:50%;background:var(--faint);flex:none}
+.engine.ready i{background:var(--good);box-shadow:0 0 10px var(--good)} .engine.loading i,.engine.busy i{background:var(--accent);animation:blink 1s steps(2) infinite} .engine.error i{background:var(--bad)}
+.recbar{position:sticky;top:63px;z-index:29;background:linear-gradient(90deg,var(--pink),var(--orange));color:#fff;display:flex;justify-content:center;gap:12px;align-items:center;padding:9px 16px;font-size:14px;font-weight:700}
+.recbar i{width:9px;height:9px;border-radius:50%;background:#fff;animation:blink 1s steps(2) infinite}
+.recbar a{color:#fff}
+
+main{max-width:1160px;margin:0 auto;padding:26px max(16px,env(safe-area-inset-right)) 80px max(16px,env(safe-area-inset-left))}
+.view{display:grid;gap:18px;min-width:0}
+.card{background:var(--panel);border-radius:var(--r);min-width:0}
+.pad{padding:22px}
+.card-h{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:18px 22px 6px}
+.card-h h2{font:700 18px var(--body)}
+.page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.page-h h1{font:800 34px/1.1 var(--body);letter-spacing:-.02em}
+.h2{font:700 22px/1.2 var(--body);letter-spacing:-.01em}
+.lbl{font-size:12.5px;color:var(--muted)}
+.muted{color:var(--muted)}
+.faint{color:var(--faint)}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.stack{display:grid;gap:12px}
+.spacer{flex:1}
+.hr{height:1px;background:var(--line);margin:0 22px}
+
+/* кнопки и поля */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;background:var(--panel2);padding:10px 18px;border-radius:99px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;color:var(--ink);white-space:nowrap;line-height:1.3;transition:background .15s,transform .1s}
+.btn:hover:not(:disabled){background:var(--hover)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){background:#FFE066}
+.btn.big{padding:14px 26px;font-size:16px;font-weight:700}
+.btn.sm{padding:6px 12px;font-size:13px}
+.btn.ghost{background:transparent}
+.btn.ghost:hover:not(:disabled){background:var(--panel2)}
+.btn.danger{color:var(--bad)}
+.btn.armed{background:var(--bad);color:#fff}
+.btn svg{width:18px;height:18px;flex:none}
+.field{display:grid;gap:6px;min-width:0}
+.field>span{font-size:12.5px;color:var(--muted);font-weight:500}
+input[type=text],input[type=password],input[type=search],input:not([type]),select,textarea{width:100%;border:1px solid transparent;background:var(--panel2);border-radius:14px;padding:12px 14px;font-size:15px;min-width:0;color:var(--ink)}
+input::placeholder,textarea::placeholder{color:var(--faint)}
+textarea{resize:vertical;min-height:90px;line-height:1.45}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--line2);background:var(--hover)}
+select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;background-size:5px 5px;background-repeat:no-repeat;padding-right:34px}
+.check{display:inline-flex;gap:9px;align-items:center;font-size:14px;cursor:pointer;color:var(--muted)}
+.check input{width:18px;height:18px;accent-color:var(--accent)}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.note{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:16px;background:var(--panel2);font-size:14px}
+.note.warn{background:var(--warn-soft)} .note.good{background:var(--good-soft)} .note.bad{background:var(--bad-soft)} .note.info{background:var(--info-soft)}
+.note .ico{flex:none;width:20px;height:20px;margin-top:1px}
+.note.warn .ico{color:var(--warn)} .note.good .ico{color:var(--good)} .note.bad .ico{color:var(--bad)} .note.info .ico{color:var(--info)}
+.note p+p{margin-top:6px}
+.note a{color:var(--ink);font-weight:600}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:4px 11px;border-radius:99px;background:var(--panel2);color:var(--muted);white-space:nowrap}
+.chip.good{background:var(--good-soft);color:var(--good)} .chip.warn{background:var(--warn-soft);color:var(--warn)} .chip.bad{background:var(--bad-soft);color:var(--bad)} .chip.info{background:var(--info-soft);color:var(--info)} .chip.acc{background:var(--accent-soft);color:var(--accent)}
+.bar{height:6px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--pink),var(--orange));width:0;transition:width .5s}
+.empty{padding:36px 22px;text-align:center;color:var(--muted);display:grid;gap:12px;justify-items:center}
+.empty b{color:var(--ink);font-size:18px}
+@keyframes blink{50%{opacity:.25}}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite;display:inline-block;flex:none}
+.av{width:48px;height:48px;border-radius:50%;flex:none;display:grid;place-items:center;font-weight:800;font-size:16px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.35)}
+.av.lg{width:72px;height:72px;font-size:24px}
+
+/* главная */
+.hero{position:relative;overflow:hidden;border-radius:28px;background:#101016;min-height:300px;display:grid;align-items:end}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%}
+.hero-in{position:relative;padding:34px;display:grid;gap:16px;max-width:620px}
+.hero h1{font:800 40px/1.05 var(--body);letter-spacing:-.025em}
+.hero p{font-size:16px;color:#D9D9E3;max-width:46ch}
+.steps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.step{background:var(--panel);border-radius:18px;padding:16px;display:grid;gap:8px;align-content:start}
+.step .n{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.step .n span{font:700 11px var(--body);letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.step b{font-size:15px}
+.step p{font-size:13px;color:var(--muted)}
+.step .btn{justify-self:start}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--faint)}
+.dot.ok{background:var(--good);box-shadow:0 0 10px var(--good)} .dot.wait{background:var(--warn)}
+.list{display:grid;gap:4px}
+.item{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 14px;border-radius:18px;text-decoration:none;color:inherit;transition:background .15s}
+.item:hover{background:var(--panel2)}
+.item h3{font-size:16px;font-weight:700}
+.item p{font-size:13.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.item .meta{font:12px var(--mono);color:var(--faint);margin-top:2px}
+.item-r{display:grid;gap:6px;justify-items:end}
+
+/* запись */
+.stage{position:relative;overflow:hidden;border-radius:28px;background:#0B0B10;min-height:420px;display:grid;place-items:center}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%}
+.stage-in{position:relative;display:grid;justify-items:center;gap:14px;padding:30px 20px;text-align:center}
+.recbtn{width:132px;height:132px;border-radius:50%;border:0;background:rgba(255,255,255,.96);color:#111;display:grid;place-items:center;cursor:pointer;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.45);transition:transform .15s}
+.recbtn:hover{transform:scale(1.04)}
+.recbtn svg{width:46px;height:46px}
+.recbtn.on{background:#fff;color:var(--bad)}
+.recbtn:disabled{opacity:.6;cursor:wait}
+.rec-time{font:500 44px/1 var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.02em;text-shadow:0 2px 20px rgba(0,0,0,.5)}
+.rec-hint{font-size:15px;color:#E6E6EE;text-shadow:0 1px 10px rgba(0,0,0,.6);max-width:44ch}
+.stage-foot{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 20px;background:linear-gradient(transparent,rgba(0,0,0,.55))}
+.stage-foot .lbl{color:#D0D0DA}
+.draft{padding:12px 22px 18px;color:var(--faint);font-size:14px;font-style:italic}
+.import{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:18px 22px;border:1.5px dashed var(--line2);background:transparent}
+.import.drag{border-color:var(--accent);background:var(--accent-soft)}
+.import h3{font-size:16px}
+.import p{font-size:13.5px;color:var(--muted)}
+
+/* расшифровка */
+.transcript{padding:6px 22px 18px;display:grid;min-width:0}
+.turn{display:grid;grid-template-columns:60px minmax(0,1fr);gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+.turn:last-child{border-bottom:0}
+.ts{font:12px var(--mono);color:var(--faint);background:none;border:0;padding:4px 0 0;text-align:left;cursor:pointer;align-self:start}
+.ts:hover{color:var(--accent)}
+.tb{min-width:0;display:grid;gap:4px}
+.spk{font-size:13px;font-weight:700;display:flex;gap:8px;align-items:center}
+.spk select{width:auto;padding:3px 28px 3px 10px;border-radius:99px;font-size:13px;font-weight:700;background-color:var(--panel2);cursor:pointer;background-position:calc(100% - 14px) 50%,calc(100% - 9px) 50%}
+.turn[data-spk=boss] .spk,.turn[data-spk=boss] .spk select{color:var(--boss)}
+.turn[data-spk=cand] .spk,.turn[data-spk=cand] .spk select{color:var(--cand)}
+.turn[data-spk=other] .spk,.turn[data-spk=other] .spk select{color:var(--other)}
+.turn[data-spk="?"] .spk{color:var(--faint)}
+.turn[data-spk=boss] .spk select{background-color:var(--boss-soft)} .turn[data-spk=cand] .spk select{background-color:var(--cand-soft)} .turn[data-spk=other] .spk select{background-color:var(--other-soft)}
+.unsure{font-size:11.5px;font-weight:700;color:var(--warn);background:var(--warn-soft);padding:2px 9px;border-radius:99px}
+.txt{overflow-wrap:anywhere;font-size:15.5px;line-height:1.6;color:#E9E9F0}
+.seg{border-radius:5px;transition:background .2s;cursor:text}
+.seg.now{background:rgba(255,212,59,.18);color:#fff}
+mark{background:rgba(255,212,59,.3);color:#fff;border-radius:3px;padding:0 1px}
+.editrow{display:grid;grid-template-columns:60px 150px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.editrow select{padding:7px 30px 7px 12px;font-size:13px}
+.editrow .txt{padding:6px 10px;border-radius:10px;background:var(--panel2);outline:none}
+.editrow .txt:focus{background:var(--hover);box-shadow:0 0 0 2px var(--line2)}
+
+/* собеседование */
+.ihead{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;padding:22px;align-items:center}
+.ihead .titles{display:grid;gap:2px;min-width:0}
+.ihead input.ttl,.ihead input.sub{background:transparent;border:1px solid transparent;border-radius:10px;padding:2px 8px;margin-left:-9px;width:100%}
+.ihead input.ttl{font:800 26px/1.2 var(--body);letter-spacing:-.015em}
+.ihead input.sub{font-size:15px;color:var(--muted)}
+.ihead input.ttl:hover,.ihead input.sub:hover{border-color:var(--line2)}
+.ihead input.ttl:focus,.ihead input.sub:focus{background:var(--panel2);border-color:var(--line2)}
+.meta{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:6px;align-items:center}
+.meta b{color:var(--ink);font-weight:600}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.menu{position:relative}
+.menu summary{list-style:none}
+.menu summary::-webkit-details-marker{display:none}
+.menu .pop{position:absolute;right:0;top:calc(100% + 8px);z-index:25;background:var(--panel2);border-radius:16px;padding:6px;min-width:260px;box-shadow:0 18px 50px rgba(0,0,0,.55);display:grid}
+.menu .pop button{border:0;background:none;text-align:left;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:14px}
+.menu .pop button:hover:not(:disabled){background:var(--hover)}
+.menu .pop button:disabled{opacity:.4}
+.saved{display:flex;gap:14px;flex-wrap:wrap;padding:12px 22px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);align-items:center}
+.saved span{display:inline-flex;gap:6px;align-items:center}
+.saved i{width:7px;height:7px;border-radius:50%;background:var(--good)}
+.saved i.off{background:var(--faint)}
+/* плеер */
+.player{position:sticky;top:72px;z-index:20;display:grid;grid-template-columns:auto auto minmax(0,1fr) auto;gap:16px;align-items:center;padding:12px 18px;background:rgba(26,26,34,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.play{width:46px;height:46px;border-radius:50%;border:0;background:var(--ink);color:var(--bg);display:grid;place-items:center;cursor:pointer}
+.play svg{width:20px;height:20px}
+.ptime{font:13px var(--mono);color:var(--muted);white-space:nowrap}
+.ptime b{color:var(--ink);font-weight:500}
+.tl{position:relative;height:34px;cursor:pointer;min-width:0}
+.tl-bg{position:absolute;left:0;right:0;top:13px;height:8px;border-radius:99px;background:var(--panel2);overflow:hidden}
+.tl-bg i{position:absolute;top:0;bottom:0;border-radius:2px;opacity:.9}
+.tl-prog{position:absolute;left:0;top:11px;height:12px;width:2px;background:#fff;border-radius:2px;box-shadow:0 0 8px rgba(255,255,255,.8);transform:translateX(-1px)}
+.tl-legend{display:flex;gap:12px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.tl-legend span{display:inline-flex;gap:6px;align-items:center}
+.tl-legend i{width:10px;height:10px;border-radius:3px}
+.speed{display:inline-flex;background:var(--panel2);border-radius:99px;padding:3px}
+.speed button{border:0;background:none;padding:5px 10px;font:500 12px var(--mono);cursor:pointer;color:var(--muted);border-radius:99px}
+.speed button.on{background:var(--ink);color:var(--bg)}
+.subtabs{display:flex;gap:6px;padding:14px 18px 0;overflow-x:auto;scrollbar-width:none}
+.subtabs button{border:0;background:transparent;padding:9px 16px;font-weight:700;font-size:14.5px;color:var(--muted);cursor:pointer;border-radius:99px;white-space:nowrap}
+.subtabs button:hover{color:var(--ink)}
+.subtabs button.on{background:var(--ink);color:var(--bg)}
+.subtabs .cnt{font:600 11px var(--mono);background:var(--warn-soft);color:var(--warn);padding:1px 7px;border-radius:99px;margin-left:5px}
+.subtabs button.on .cnt{background:var(--warn);color:var(--bg)}
+.how{margin:14px 22px 0;padding:12px 16px;border-radius:14px;background:var(--bg2);font-size:13px;color:var(--muted);display:flex;gap:18px;flex-wrap:wrap}
+.how b{color:var(--ink)}
+
+/* анализ */
+.verdict{display:grid;grid-template-columns:auto minmax(0,1fr);gap:26px;padding:24px 22px;align-items:center}
+.ring{width:132px;height:132px;position:relative;flex:none}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring .v{position:absolute;inset:0;display:grid;place-items:center;text-align:center;align-content:center}
+.ring .v b{font:800 36px/1 var(--body)}
+.ring .v small{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:4px}
+.dec{font:800 28px/1.1 var(--body);letter-spacing:-.015em}
+.v-good .dec{color:var(--good)} .v-warn .dec{color:var(--warn)} .v-bad .dec{color:var(--bad)}
+.one{font-size:18px;font-weight:600;margin-top:6px;line-height:1.35}
+.sum{font-size:15px;color:#D6D6E0;line-height:1.6;margin-top:8px}
+.sec{padding:20px 22px;display:grid;gap:14px;align-content:start}
+.sec+.sec,.cols+.sec,.sec+.cols,.cols+.cols{border-top:1px solid var(--line)}
+.sec h3{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);font-weight:800;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.sec h3 span{letter-spacing:0;text-transform:none;font-weight:600;color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+.cols>.sec+.sec{border-top:0;border-left:1px solid var(--line)}
+.pts{list-style:none;margin:0;padding:0;display:grid;gap:14px}
+.pts li{display:grid;gap:4px;padding-left:16px;position:relative}
+.pts li::before{content:"";position:absolute;left:0;top:8px;width:7px;height:7px;border-radius:50%;background:var(--c,var(--faint))}
+.pts.good li::before{background:var(--good)} .pts.bad li::before{background:var(--bad)} .pts.warn li::before{background:var(--warn)} .pts.info li::before{background:var(--info)} .pts.acc li::before{background:var(--accent)}
+.pts b{font-weight:600}
+.quote{font-size:13.5px;color:var(--muted);font-style:italic}
+.tsb{font:500 11.5px var(--mono);font-style:normal;background:var(--panel2);border:0;border-radius:99px;padding:2px 9px;margin-left:6px;cursor:pointer;color:var(--accent);vertical-align:1px}
+.tsb:hover{background:var(--hover)}
+.sev{font-size:11px;font-weight:800;padding:2px 9px;border-radius:99px;margin-left:8px;vertical-align:1px}
+.sev.h{background:var(--bad-soft);color:var(--bad)} .sev.m{background:var(--warn-soft);color:var(--warn)} .sev.l{background:var(--panel2);color:var(--muted)}
+.comp{display:grid;gap:16px}
+.comp-row{display:grid;grid-template-columns:minmax(140px,230px) 120px minmax(0,1fr);gap:16px;align-items:start}
+.dots{display:flex;gap:4px;padding-top:7px}
+.dots i{width:18px;height:8px;border-radius:99px;background:var(--panel2)}
+.dots.s1 i.on,.dots.s2 i.on{background:var(--bad)} .dots.s3 i.on{background:var(--warn)} .dots.s4 i.on,.dots.s5 i.on{background:var(--good)}
+.facts{display:grid;grid-template-columns:minmax(120px,auto) minmax(0,1fr);gap:10px 18px;margin:0;font-size:14.5px}
+.facts dt{color:var(--muted);font-size:13.5px}
+.facts dd{margin:0}
+.fq{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:q}
+.fq li{display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;counter-increment:q}
+.fq li::before{content:counter(q);font:700 12px var(--mono);color:var(--accent-ink);background:var(--accent);border-radius:99px;text-align:center;padding:3px 0}
+.fq small{display:block;color:var(--muted);font-size:12.5px}
+.tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;padding:20px 22px}
+.tile{background:var(--bg2);border-radius:16px;padding:14px 16px;display:grid;gap:4px}
+.tile small{font-size:12px;color:var(--muted)}
+.tile b{font:700 24px/1.1 var(--body);font-variant-numeric:tabular-nums}
+.tile em{font-style:normal;font-size:12px;color:var(--faint)}
+.meter{display:flex;height:12px;border-radius:99px;overflow:hidden;background:var(--panel2);gap:2px}
+.meter i{display:block;height:100%}
+.legend{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px}
+.legend span{display:inline-flex;gap:7px;align-items:center}
+.legend i{width:10px;height:10px;border-radius:3px}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kv>div{background:var(--bg2);border-radius:14px;padding:14px;display:grid;gap:3px}
+.kv b{font:700 20px var(--body)}
+.kv small{font-size:12.5px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font-size:13px;padding:4px 12px;border-radius:99px;background:var(--panel2);color:#DADAE4;font-weight:500}
+.chips span em{font-style:normal;font-family:var(--mono);color:var(--faint);margin-left:6px;font-size:11px}
+.prose{font-size:14.5px;line-height:1.6;display:grid;gap:8px}
+.qa{display:grid;gap:10px;padding:16px 18px 20px}
+.qa-card{background:var(--bg2);border-radius:18px;padding:16px 18px;display:grid;gap:10px}
+.qa-q{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
+.qa-q b{color:var(--boss);font-size:15px}
+.qa-a{font-size:14.5px;color:#DCDCE6;line-height:1.55}
+.qa-a.clip{display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+.qa-f{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:12.5px;color:var(--muted)}
+.rate{font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;white-space:nowrap}
+.rate.strong{background:var(--good-soft);color:var(--good)} .rate.mid{background:var(--warn-soft);color:var(--warn)} .rate.weak{background:var(--bad-soft);color:var(--bad)}
+.aiq{font-size:13.5px;padding:10px 12px;border-radius:12px;background:var(--panel);display:flex;gap:10px;align-items:flex-start}
+.aiq .rate{flex:none}
+.stepsAI{display:grid;gap:16px;counter-reset:st}
+.stepsAI>div{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;counter-increment:st}
+.stepsAI>div::before{content:counter(st);width:32px;height:32px;border-radius:50%;background:var(--panel2);color:var(--ink);font-weight:800;display:grid;place-items:center;font-size:14px}
+.ai-cta{padding:26px 22px;display:grid;gap:16px;position:relative;overflow:hidden}
+.ai-cta::before{content:"";position:absolute;inset:0;background:radial-gradient(60% 120% at 100% 0%,rgba(139,108,255,.20),transparent 60%),radial-gradient(50% 100% at 0% 100%,rgba(255,95,162,.12),transparent 60%);pointer-events:none}
+.ai-cta>*{position:relative}
+
+/* настройки */
+.set{display:grid;gap:16px;padding:24px}
+.set h2{font:700 20px var(--body)}
+.set>p{font-size:14.5px;color:var(--muted);max-width:72ch}
+.opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.opt{display:grid;gap:4px;padding:14px 16px;border-radius:16px;cursor:pointer;position:relative;background:var(--panel2);border:1.5px solid transparent}
+.opt:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.opt input{position:absolute;opacity:0;pointer-events:none}
+.opt b{font-size:15px}
+.opt span{font-size:12.5px;color:var(--muted)}
+.opt.dis{opacity:.45;cursor:not-allowed}
+.profile-card{display:grid;grid-template-columns:auto minmax(0,1fr);gap:16px;align-items:center;padding:16px;border-radius:18px;background:var(--bg2)}
+.vp{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 30% 30%,var(--pink),var(--violet));color:#fff}
+.vp svg{width:26px;height:26px}
+.vp.off{background:var(--panel2);color:var(--faint)}
+
+#toasts{position:fixed;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:grid;gap:8px;width:min(560px,calc(100% - 32px))}
+.toast{background:var(--ink);color:var(--bg);padding:13px 18px;border-radius:16px;font-size:14px;font-weight:500;box-shadow:0 14px 40px rgba(0,0,0,.5);transition:opacity .3s,transform .3s}
+.toast.warn{background:var(--warn);color:#1a1405} .toast.bad{background:var(--bad);color:#fff} .toast.good{background:var(--good);color:#06180d}
+.toast.out{opacity:0;transform:translateY(8px)}
+#print{display:none}
+footer{max-width:1160px;margin:0 auto;padding:0 16px 40px;color:var(--faint);font-size:12.5px;display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap}
+
+@media (max-width:980px){.steps{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:860px){
+  .cols,.grid2,.grid3{grid-template-columns:1fr}
+  .cols>.sec+.sec{border-left:0;border-top:1px solid var(--line)}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .opts{grid-template-columns:1fr}
+  .comp-row{grid-template-columns:1fr auto}.comp-row>div:last-child{grid-column:1/-1}
+  .kv{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ihead{grid-template-columns:auto minmax(0,1fr)}.actions{grid-column:1/-1;justify-content:flex-start}
+  .verdict{grid-template-columns:1fr;justify-items:start}
+  .player{grid-template-columns:auto minmax(0,1fr);row-gap:8px}.player .tl{grid-column:1/-1;order:3}.player .speed{justify-self:end}
+}
+@media (max-width:560px){
+  .steps{grid-template-columns:1fr}
+  .hero h1{font-size:30px}.hero-in{padding:24px}
+  .page-h h1{font-size:28px}
+  .stage{min-height:360px}.recbtn{width:112px;height:112px}
+  .turn{grid-template-columns:1fr;gap:2px}
+  .editrow{grid-template-columns:1fr}
+  .item{grid-template-columns:auto minmax(0,1fr)}.item-r{grid-column:2;justify-items:start}
+  .top{position:static}.recbar{top:0}.player{top:0}
+  .nav a{padding:7px 12px;font-size:13px}
+  .ihead input.ttl{font-size:21px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  html,body{background:#fff;color:#000}
+  body::before{display:none}
+  body>*:not(#print){display:none!important}
+  #print{display:block;font-size:12px;color:#000}
+  #print *{color:#000!important;background:transparent!important;box-shadow:none!important}
+  #print .card{border:1px solid #ccc;break-inside:avoid;margin-bottom:10px}
+  #print button{display:none}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <a class="brand" href="#home" aria-label="Grass Voice — на главную"><span class="logo" aria-hidden="true"></span><span class="brand-t"><b>Grass Voice</b><span>by AZBYYKA</span></span></a>
+    <nav class="nav" aria-label="Разделы">
+      <a href="#home" data-nav="home">Собеседования</a>
+      <a href="#new" data-nav="new">Запись</a>
+      <a href="#settings" data-nav="settings">Настройки</a>
+    </nav>
+    <button class="engine" id="engine" type="button"><i></i><span id="engineText">Распознавание не запущено</span></button>
+  </div>
+</header>
+<div class="recbar" id="recbar" hidden><i></i><span>Идёт запись · <b id="recbarTime">00:00</b></span><a href="#new">Открыть</a></div>
+
+<main>
+  <section id="v-home" class="view" hidden></section>
+
+  <section id="v-new" class="view" hidden>
+    <div class="card pad stack">
+      <div class="grid2">
+        <label class="field"><span>Кандидат</span><input id="nCand" type="text" placeholder="Имя и фамилия" autocomplete="off"></label>
+        <label class="field"><span>Вакансия</span><input id="nPos" type="text" placeholder="Например: менеджер по продажам" autocomplete="off"></label>
+      </div>
+      <div id="nProfile"></div>
+    </div>
+    <div class="stage" id="stage">
+      <canvas id="wave" aria-hidden="true"></canvas>
+      <div class="stage-in">
+        <button class="recbtn" id="recBtn" type="button" aria-label="Начать запись"><svg viewBox="0 0 24 24" fill="currentColor" id="recIco"></svg></button>
+        <div class="rec-time" id="recTime">00:00</div>
+        <div class="rec-hint" id="recHint">Нажмите, чтобы начать запись собеседования</div>
+      </div>
+      <div class="stage-foot">
+        <span class="lbl" id="recQueue">Текст появляется после каждой паузы в речи, кусками по 10–25 секунд.</span>
+        <label class="check" style="color:#D0D0DA"><input type="checkbox" id="liveDraft"> Черновик текста сразу</label>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-h"><h2>Расшифровка</h2><span class="lbl" id="liveStat"></span></div>
+      <div id="liveList" class="transcript"></div>
+      <div id="draft" class="draft" hidden></div>
+    </div>
+    <div class="card import" id="importZone">
+      <div><h3>Есть готовая запись собеседования?</h3><p>Перетащите сюда аудио или видео (MP3, M4A, WAV, MP4, WEBM) или выберите файл.</p></div>
+      <label class="btn"><input type="file" id="importFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Выбрать файл</label>
+    </div>
+  </section>
+
+  <section id="v-int" class="view" hidden></section>
+  <section id="v-settings" class="view" hidden></section>
+</main>
+<footer><span>Grass Voice by AZBYYKA</span><span>Звук и записи хранятся только на этом компьютере</span></footer>
+<div id="toasts" aria-live="polite"></div>
+<div id="print"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   Утилиты
+   ========================================================= */
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function fmt(s){s=Math.max(0,Math.floor(s||0));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return(h?h+":"+String(m).padStart(2,"0"):String(m).padStart(2,"0"))+":"+String(x).padStart(2,"0")}
+function fmtLong(s){s=Math.round(s||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?`${h} ч ${m} мин`:m?`${m} мин ${x} с`:`${x} с`}
+function parseTs(t){if(t==null||t==="")return null;if(typeof t==="number")return t;const p=String(t).replace(/[\[\]]/g,"").trim().split(":").map(Number);if(!p.length||p.some(isNaN))return null;return p.reduce((a,b)=>a*60+b,0)}
+function plural(n,a,b,c){n=Math.abs(n)%100;const m=n%10;if(n>10&&n<20)return c;if(m>1&&m<5)return b;if(m===1)return a;return c}
+const pl=(n,a,b,c)=>n+" "+plural(n,a,b,c);
+const dateStr=ts=>new Date(ts).toLocaleString("ru-RU",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
+const dateShort=ts=>new Date(ts).toLocaleString("ru-RU",{day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+const debounce=(fn,ms)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+const dot=(a,b)=>{let s=0;const n=Math.min(a.length,b.length);for(let i=0;i<n;i++)s+=a[i]*b[i];return s};
+function normv(v){let n=0;for(let i=0;i<v.length;i++)n+=v[i]*v[i];n=Math.sqrt(n)||1;const r=new Float32Array(v.length);for(let i=0;i<v.length;i++)r[i]=v[i]/n;return r}
+function meanVec(list,weights){const d=list[0].length,r=new Float32Array(d);list.forEach((v,j)=>{const w=weights?weights[j]:1;for(let i=0;i<d;i++)r[i]+=v[i]*w});return r}
+const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+const WORDS=t=>String(t||"").toLowerCase().match(/[a-zа-яё0-9]+(?:-[a-zа-яё0-9]+)*/gi)||[];
+function toast(msg,kind="",ms=4500){const t=document.createElement("div");t.className="toast "+kind;t.textContent=msg;$("#toasts").append(t);setTimeout(()=>t.classList.add("out"),ms);setTimeout(()=>t.remove(),ms+400)}
+function download(blob,name){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},4000)}
+async function copyText(text){try{await navigator.clipboard.writeText(text);return true}catch(e){}const ta=document.createElement("textarea");ta.value=text;ta.style.cssText="position:fixed;opacity:0;top:0";document.body.appendChild(ta);ta.select();let ok=false;try{ok=document.execCommand("copy")}catch(e){}ta.remove();return ok}
+function armed(btn,fn,label="Нажмите ещё раз"){if(btn.classList.contains("armed")){btn.classList.remove("armed");btn.textContent=btn.dataset.o;fn();return}btn.dataset.o=btn.textContent;btn.classList.add("armed");btn.textContent=label;setTimeout(()=>{if(btn.classList.contains("armed")){btn.classList.remove("armed");btn.textContent=btn.dataset.o}},3000)}
+function flash(btn,text){const o=btn.dataset.f||btn.innerHTML;btn.dataset.f=o;btn.textContent=text;setTimeout(()=>{btn.innerHTML=o;delete btn.dataset.f},1800)}
+const TR={а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ё:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"c",ч:"ch",ш:"sh",щ:"sch",ъ:"",ы:"y",ь:"",э:"e",ю:"yu",я:"ya"};
+const translit=t=>String(t||"").toLowerCase().split("").map(c=>TR[c]??c).join("").replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+function hash(s){let h=2166136261;for(const c of String(s))h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0}
+function avatar(name,cls=""){const h=hash(name||"?")%360,init=String(name||"?").trim().split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase()||"?";
+  return`<span class="av ${cls}" style="background:radial-gradient(circle at 28% 25%,hsl(${h},95%,72%),transparent 55%),radial-gradient(circle at 75% 80%,hsl(${(h+70)%360},90%,60%),transparent 60%),hsl(${(h+30)%360},55%,38%)">${esc(init)}</span>`}
+const ICON={
+  mic:'<path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/>',
+  stop:'<rect x="6" y="6" width="12" height="12" rx="3"/>',
+  play:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z"/></svg>',
+  pause:'<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></svg>',
+  info:'<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm1 15h-2v-6h2v6Zm0-8h-2V7h2v2Z"/></svg>',
+  ok:'<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 5.6-5.6 1.4 1.4-7 7Z"/></svg>',
+  warn:'<svg class="ico" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21Zm12-3h-2v-2h2v2Zm0-4h-2v-4h2v4Z"/></svg>',
+  voice:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 10h2v4H3zm4-3h2v10H7zm4-4h2v18h-2zm4 5h2v8h-2zm4 2h2v4h-2z"/></svg>'
+};
+const note=(kind,html)=>`<div class="note ${kind}">${kind==="good"?ICON.ok:kind==="warn"||kind==="bad"?ICON.warn:ICON.info}<div>${html}</div></div>`;
+
+/* =========================================================
+   Хранилище (IndexedDB) — записи остаются в этом браузере
+   ========================================================= */
+const DB=(()=>{
+  let db=null;const mem={recs:new Map(),audio:new Map(),kv:new Map()};
+  const ready=new Promise(res=>{
+    try{const r=indexedDB.open("slukh-interviews",1);
+      r.onupgradeneeded=()=>{const d=r.result;["recs","audio","kv"].forEach(n=>{if(!d.objectStoreNames.contains(n))d.createObjectStore(n)})};
+      r.onsuccess=()=>{db=r.result;db.onversionchange=()=>db.close();res()};
+      r.onerror=()=>res();r.onblocked=()=>res();
+    }catch(e){res()}
+    setTimeout(res,4000);
+  });
+  const op=(s,mode,fn)=>new Promise((res,rej)=>{const t=db.transaction(s,mode);const q=fn(t.objectStore(s));t.oncomplete=()=>res(q?q.result:undefined);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error||new Error("Запись в базу прервана"))});
+  return{ready,get ok(){return!!db},
+    async get(s,k){await ready;return db?op(s,"readonly",o=>o.get(k)):mem[s].get(k)},
+    async put(s,k,v){await ready;if(!db){mem[s].set(k,v);return}return op(s,"readwrite",o=>o.put(v,k))},
+    async del(s,k){await ready;if(!db){mem[s].delete(k);return}return op(s,"readwrite",o=>o.delete(k))},
+    async all(s){await ready;return db?op(s,"readonly",o=>o.getAll()):[...mem[s].values()]},
+    async clear(s){await ready;if(!db){mem[s].clear();return}return op(s,"readwrite",o=>o.clear())}
+  };
+})();
+let persistAsked=false;
+async function askPersist(){if(persistAsked)return;persistAsked=true;try{if(navigator.storage&&navigator.storage.persist)await navigator.storage.persist()}catch(e){}}
+async function storageInfo(){const o={used:0,quota:0,persisted:false};try{if(navigator.storage&&navigator.storage.estimate){const e=await navigator.storage.estimate();o.used=e.usage||0;o.quota=e.quota||0}if(navigator.storage&&navigator.storage.persisted)o.persisted=await navigator.storage.persisted()}catch(e){}return o}
+
+/* =========================================================
+   Настройки и профиль голоса
+   ========================================================= */
+const MODELS={
+  "auto":{name:"Авто",desc:"Лучшая модель, которую потянет этот компьютер"},
+  "onnx-community/whisper-large-v3-turbo":{name:"Максимальная",desc:"Самая точная. Нужна видеокарта, скачивается ≈ 1,6 ГБ",gpuOnly:true},
+  "onnx-community/whisper-small":{name:"Точная",desc:"Хорошее качество на любом компьютере, ≈ 250–590 МБ"},
+  "onnx-community/whisper-base":{name:"Быстрая",desc:"Для слабых компьютеров, ошибается чаще, ≈ 80 МБ"}
+};
+const MODEL_NAME=m=>m&&m.includes("large")?"Максимальная":m&&m.includes("small")?"Точная":m&&m.includes("base")?"Быстрая":"—";
+const LANGS={russian:"Русский",english:"English",ukrainian:"Українська"};
+const AIMODELS=["claude-opus-5-5","claude-sonnet-5-5"];
+const DEF={v:2,bossName:"Босс",lang:"russian",model:"auto",gpu:true,liveDraft:null,
+  ai:{provider:"copy",key:"",base:"",model:"",context:"",auto:true}};
+let S=JSON.parse(JSON.stringify(DEF));
+let PROFILE=null;
+async function loadSettings(){
+  try{const v=await DB.get("kv","settings");if(v){S={...DEF,...v,ai:{...DEF.ai,...(v.ai||{})}};if(!v.v){S.v=2;if(S.model==="onnx-community/whisper-small")S.model="auto"}}}catch(e){}
+  try{PROFILE=await DB.get("kv","profile")||null}catch(e){}
+}
+const saveSettings=debounce(()=>DB.put("kv","settings",JSON.parse(JSON.stringify(S))).catch(()=>toast("Не удалось сохранить настройки","bad")),300);
+async function saveProfile(){if(PROFILE)await DB.put("kv","profile",PROFILE);else await DB.del("kv","profile")}
+
+/* =========================================================
+   Папка на компьютере для копий (Chrome, Edge)
+   ========================================================= */
+const Folder={
+  handle:null,state:"none",pending:new Set(),
+  get supported(){return"showDirectoryPicker" in window},
+  async load(){try{this.handle=await DB.get("kv","folder")||null}catch(e){this.handle=null}await this.check()},
+  async check(){if(!this.handle){this.state="none";return this.state}try{this.state=await this.handle.queryPermission({mode:"readwrite"})}catch(e){this.state="denied"}return this.state},
+  async pick(){const h=await window.showDirectoryPicker({id:"grass-voice",mode:"readwrite",startIn:"documents"});this.handle=h;this.unicode=null;await DB.put("kv","folder",h);this.state="granted";await this.syncAll()},
+  async allow(){if(!this.handle)return;try{this.state=await this.handle.requestPermission({mode:"readwrite"})}catch(e){}if(this.state==="granted")await this.syncAll()},
+  async forget(){this.handle=null;this.state="none";await DB.del("kv","folder")},
+  unicode:null,
+  async probe(){
+    const t="grass-voice-check-"+Date.now().toString(36);let ok=false;
+    try{const box=await this.handle.getDirectoryHandle(t,{create:true});
+      const sub=await box.getDirectoryHandle("Папка",{create:true});const fh=await sub.getFileHandle("Файл.txt",{create:true});const w=await fh.createWritable();await w.write("1");await w.close();
+      let dirOk=false,fileOk=false;for await(const [n,h] of box.entries()){if(n==="Папка"&&h.kind==="directory")dirOk=true}
+      if(dirOk){for await(const [n,h] of sub.entries()){if(n==="Файл.txt"&&h.kind==="file")fileOk=true}}
+      ok=dirOk&&fileOk;
+    }catch(e){ok=false}
+    try{await this.handle.removeEntry(t,{recursive:true})}catch(e){}
+    this.unicode=ok;return ok;
+  },
+  name(){return this.handle?this.handle.name:""},
+  dirName(rec,ascii){const d=new Date(rec.created),p=n=>String(n).padStart(2,"0"),who=ascii?(translit(rec.candidate)||"kandidat"):(rec.candidate||"Кандидат").replace(/[\\/:*?"<>|]+/g," ").trim().slice(0,60);return`${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}.${p(d.getMinutes())} ${who}`},
+  async write(dir,names,data){names=[].concat(names);let err;for(const n of names){try{const fh=await dir.getFileHandle(n,{create:true});const w=await fh.createWritable();await w.write(data);await w.close();return n}catch(e){err=e}}throw err},
+  async syncRec(rec,{audio=false}={}){
+    if(!this.handle||rec.status!=="ready")return false;
+    if(this.state!=="granted"){await this.check();if(this.state!=="granted"){this.pending.add(rec.id);return false}}
+    try{
+      let name=this.dirName(rec);
+      if(this.unicode==null)await this.probe();
+      if(!this.unicode)name=this.dirName(rec,true);
+      if(rec.folderDir&&rec.folderDir!==name){try{await this.handle.removeEntry(rec.folderDir,{recursive:true})}catch(e){}audio=true}
+      const dir=await this.handle.getDirectoryHandle(name,{create:true});
+      await this.write(dir,this.unicode?"Отчёт.md":"otchet.md",new Blob([reportMD(rec)],{type:"text/markdown"}));
+      await this.write(dir,this.unicode?"Расшифровка.txt":"rasshifrovka.txt",new Blob([plainTranscript(rec)],{type:"text/plain"}));
+      if(audio||!rec.folderAudio){const a=await getAudio(rec);if(a){await this.write(dir,(this.unicode?"Запись.":"zapis.")+audioExt(a.type),a);rec.folderAudio=true}}
+      rec.folderDir=name;rec.folderAt=Date.now();this.pending.delete(rec.id);
+      await DB.put("recs",rec.id,rec);return true;
+    }catch(e){console.error(e);this.pending.add(rec.id);return false}
+  },
+  async syncAll(){const list=await allRecs();let n=0;for(const r of list){if(r.status==="ready"&&(!r.folderAt||r.updated>r.folderAt||this.pending.has(r.id))){if(await this.syncRec(r,{audio:!r.folderAudio}))n++}}if(n)toast(`Сохранено в папку «${this.name()}»: ${pl(n,"собеседование","собеседования","собеседований")}`,"good");refreshView()}
+};
+const folderSoon=new Map();
+function syncFolderSoon(rec){if(!Folder.handle||rec.status!=="ready")return;clearTimeout(folderSoon.get(rec.id));folderSoon.set(rec.id,setTimeout(()=>Folder.syncRec(rec).then(ok=>{if(ok&&INT&&INT.rec.id===rec.id)renderSaved()}),2500))}
+
+/* =========================================================
+   Распознавание (Web Worker)
+   ========================================================= */
+function workerMain(){
+  const TF="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2";
+  let T=null,asr=null,asrKey="",dev="",asrModel="",sv=null,svProc=null,gpuBroken=false;
+  const post=(m)=>self.postMessage(m);
+  const prog=p=>{if(p.status==="progress"&&p.total)post({type:"dl",file:(p.name||"")+"/"+p.file,loaded:p.loaded,total:p.total})};
+  async function lib(){
+    if(!T){T=await import(TF);T.env.allowLocalModels=false;
+      try{T.env.backends.onnx.wasm.numThreads=self.crossOriginIsolated?Math.max(1,Math.min(8,(navigator.hardwareConcurrency||4)-1)):1}catch(e){}}
+    return T;
+  }
+  async function gpuInfo(){if(gpuBroken||!("gpu" in navigator))return null;try{const a=await navigator.gpu.requestAdapter();return a?{f16:a.features.has("shader-f16")}:null}catch(e){return null}}
+  async function load(model,device){
+    const big=model.includes("large");
+    const dtype=device==="webgpu"?(big?{encoder_model:"fp16",decoder_model_merged:"q4"}:{encoder_model:"fp32",decoder_model_merged:"q4"}):"q8";
+    return T.pipeline("automatic-speech-recognition",model,{device,dtype,progress_callback:prog});
+  }
+  async function getASR(want,gpu){
+    await lib();
+    const g=gpu?await gpuInfo():null;
+    let model=want;
+    if(want==="auto")model=g&&g.f16?"onnx-community/whisper-large-v3-turbo":"onnx-community/whisper-small";
+    if(model.includes("large")&&!(g&&g.f16)){if(want!=="auto")post({type:"warn",msg:"«Максимальной» модели нужна видеокарта с WebGPU. Использую «Точную»."});model="onnx-community/whisper-small"}
+    const device=g?"webgpu":"wasm",key=model+"|"+device;
+    if(asr&&asrKey===key)return asr;
+    if(asr){try{await asr.dispose()}catch(e){}asr=null}
+    if(device==="webgpu"){
+      try{asr=await load(model,"webgpu");dev="webgpu"}
+      catch(e){asr=null;
+        if(model.includes("large")){post({type:"warn",msg:"Видеокарте не хватило памяти на «Максимальную» модель. Беру «Точную»."});model="onnx-community/whisper-small";try{asr=await load(model,"webgpu");dev="webgpu"}catch(e2){asr=null}}
+        if(!asr){gpuBroken=true;post({type:"warn",msg:"Видеокарта недоступна, распознаю на процессоре."})}}
+    }
+    if(!asr){if(model.includes("large"))model="onnx-community/whisper-small";asr=await load(model,"wasm");dev="wasm"}
+    asrKey=key;asrModel=model;
+    post({type:"ready",what:"asr",device:dev,model,threads:self.crossOriginIsolated});
+    return asr;
+  }
+  async function getSV(){
+    await lib();
+    if(!sv){svProc=await T.AutoProcessor.from_pretrained("Xenova/wavlm-base-plus-sv",{progress_callback:prog});
+      sv=await T.WavLMForXVector.from_pretrained("Xenova/wavlm-base-plus-sv",{dtype:"q8",device:"wasm",progress_callback:prog});post({type:"ready",what:"sv"})}
+  }
+  async function embed(x){const inp=await svProc(x);const o=await sv(inp);const e=o.embeddings.data;let n=0;for(let i=0;i<e.length;i++)n+=e[i]*e[i];n=Math.sqrt(n)||1;const r=new Float32Array(e.length);for(let i=0;i<e.length;i++)r[i]=e[i]/n;return r}
+  function rms(x,a,b){let s=0;for(let i=a;i<b;i++)s+=x[i]*x[i];return Math.sqrt(s/Math.max(1,b-a))}
+  const HALLU=/субтитр|продолжение следует|спасибо за (?:просмотр|внимание)|подпис\S* на (?:канал|наш)|ставьте лайк|dimatorzok|amara\.org|редактор субтитров|корректор|с вами был|до новых встреч|всем пока/i;
+  function cleanText(t){
+    t=String(t||"").replace(/\s+/g," ").trim();
+    t=t.replace(/(^|\s)([а-яёa-z0-9-]+)(?:[\s,]+\2){3,}(?=[\s.,!?…]|$)/gi,"$1$2");
+    t=t.replace(/(.{6,80}?[.!?,]?)(?:\s*\1){2,}/g,"$1");
+    return t.trim();
+  }
+  async function run(pcm,opts,model,gpu){
+    const a=await getASR(model,gpu&&!gpuBroken);
+    try{return await a(pcm,opts)}
+    catch(e){if(dev==="webgpu"){gpuBroken=true;post({type:"warn",msg:"Сбой видеокарты, продолжаю на процессоре."});const b=await getASR(model,false);return await b(pcm,opts)}throw e}
+  }
+  async function transcribe(m){
+    const sr=16000,x=m.pcm,dur=x.length/sr;
+    const out=await run(x,{language:m.lang||"russian",task:"transcribe",return_timestamps:true},m.model,m.gpu);
+    const raw=(out.chunks&&out.chunks.length)?out.chunks:[{timestamp:[0,dur],text:out.text||""}];
+    const segs=[];
+    for(const c of raw){
+      let t0=c.timestamp&&c.timestamp[0]!=null?c.timestamp[0]:0,t1=c.timestamp&&c.timestamp[1]!=null?c.timestamp[1]:dur;
+      t0=Math.max(0,Math.min(dur,t0));t1=Math.max(t0+0.2,Math.min(dur,t1));
+      const text=cleanText(c.text);
+      if(!text||HALLU.test(text)||/^[.,!?…\s-]*$/.test(text))continue;
+      if(segs.length&&segs[segs.length-1].text===text)continue;
+      const a0=Math.floor(t0*sr),a1=Math.min(x.length,Math.ceil(t1*sr));
+      if(a1-a0>sr*0.3&&rms(x,a0,a1)<0.0025)continue;
+      segs.push({t0,t1,text});
+    }
+    await getSV();
+    for(const s of segs){
+      let a0=Math.floor(s.t0*sr),a1=Math.min(x.length,Math.ceil(s.t1*sr));
+      if(a1-a0<1.6*sr){const c=(a0+a1)/2;a0=Math.max(0,Math.floor(c-0.8*sr));a1=Math.min(x.length,Math.ceil(c+0.8*sr))}
+      s.emb=await embed(x.slice(a0,a1));
+      if(s.t1-s.t0>7){
+        s.wins=[];
+        for(let w=a0;w+3*sr<=a1;w+=1.5*sr){if(rms(x,w,w+3*sr)<0.004)continue;s.wins.push({t:m.offset+(w+1.5*sr)/sr,emb:await embed(x.slice(w,w+3*sr))})}
+      }
+      s.t0+=m.offset;s.t1+=m.offset;
+    }
+    post({type:"done",id:m.id,segs,model:asrModel,device:dev});
+  }
+  async function embedList(m){
+    await getSV();const embs=[];
+    for(let i=0;i<m.win.length;i++){const[a,b]=m.win[i];embs.push(await embed(m.pcm.slice(a,b)));if(i%4===0)post({type:"progress",id:m.id,done:i+1,total:m.win.length})}
+    post({type:"done",id:m.id,embs});
+  }
+  let q=Promise.resolve();
+  self.onmessage=e=>{const m=e.data;q=q.then(async()=>{
+    try{
+      if(m.type==="warm"){await getASR(m.model,m.gpu);await getSV();post({type:"done",id:m.id})}
+      else if(m.type==="chunk")await transcribe(m);
+      else if(m.type==="embed")await embedList(m);
+    }catch(err){post({type:"error",id:m.id,msg:String(err&&err.message||err)})}
+  })};
+}
+
+const Engine={
+  w:null,seq:0,pending:new Map(),dl:{},device:null,model:null,asrReady:false,svReady:false,error:null,busy:0,want:null,
+  start(){
+    if(this.w)return;
+    this.error=null;
+    const src="("+workerMain.toString()+")()";
+    try{this.w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})),{type:"module"})}
+    catch(e){this.fail("Браузер не поддерживает фоновое распознавание. Обновите Safari или Chrome.");return}
+    this.w.onmessage=e=>this.onMsg(e.data);
+    this.w.onerror=e=>{e.preventDefault&&e.preventDefault();this.fail("Не удалось запустить распознавание: "+(e.message||"проверьте интернет"))};
+  },
+  fail(msg){this.error=msg;this.pending.forEach(p=>p.rej(new Error(msg)));this.pending.clear();try{this.w&&this.w.terminate()}catch(e){}this.w=null;this.asrReady=this.svReady=false;this.busy=0;refreshEngine()},
+  onMsg(m){
+    if(m.type==="dl"){this.dl[m.file]=[m.loaded,m.total];refreshEngine();return}
+    if(m.type==="ready"){if(m.what==="asr"){this.asrReady=true;this.device=m.device;this.model=m.model;this.want=S.model+"|"+S.gpu}else this.svReady=true;
+      Object.keys(this.dl).forEach(k=>{const v=this.dl[k];if(v[0]>=v[1])delete this.dl[k]});refreshEngine();return}
+    if(m.type==="warn"){toast(m.msg,"warn",6000);return}
+    const p=this.pending.get(m.id);if(!p)return;
+    if(m.type==="progress"){p.onProgress&&p.onProgress(m.done,m.total);return}
+    this.pending.delete(m.id);if(p.counts)this.busy=Math.max(0,this.busy-1);
+    if(m.type==="error")p.rej(new Error(m.msg));else p.res(m);
+    refreshEngine();
+  },
+  call(type,data,transfer,opts={}){
+    this.start();if(!this.w)return Promise.reject(new Error(this.error||"Распознавание недоступно"));
+    const id=++this.seq;if(opts.counts)this.busy++;
+    return new Promise((res,rej)=>{this.pending.set(id,{res,rej,onProgress:opts.onProgress,counts:opts.counts});this.w.postMessage({type,id,...data},transfer||[]);refreshEngine()});
+  },
+  ready(){return this.asrReady&&this.svReady&&this.want===S.model+"|"+S.gpu},
+  warm(){if(this.ready())return Promise.resolve();return this.call("warm",{model:S.model,gpu:S.gpu}).catch(e=>toast(e.message,"bad"))},
+  transcribe(pcm,offset){return this.call("chunk",{pcm,offset,lang:S.lang,model:S.model,gpu:S.gpu},[pcm.buffer],{counts:true})},
+  embedWindows(pcm,win,onProgress){return this.call("embed",{pcm,win},[pcm.buffer],{onProgress})},
+  dlInfo(){let a=0,b=0;Object.values(this.dl).forEach(([x,y])=>{a+=x;b+=y});return b&&a<b?{a,b}:null},
+  restart(){if(this.w){try{this.w.terminate()}catch(e){}this.w=null}this.pending.forEach(p=>p.rej(new Error("Перезапуск")));this.pending.clear();this.asrReady=this.svReady=false;this.dl={};this.busy=0;this.error=null;refreshEngine()}
+};
+function engineState(){
+  const d=Engine.dlInfo(),jobs=[...Jobs.map.values()].filter(j=>!j.done);
+  if(Engine.error)return{cls:"error",text:"Ошибка распознавания — нажмите, чтобы перезапустить"};
+  if(d)return{cls:"loading",text:`Скачиваю модели ${Math.round(d.a/d.b*100)} % · ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ`};
+  if(jobs.length||Engine.busy){const left=jobs.reduce((s,j)=>s+Math.max(0,j.total-j.doneSec),0);return{cls:"busy",text:left>1?`Расшифровка · осталось ${fmtLong(left)} записи`:"Расшифровка…"}}
+  if(Engine.asrReady&&Engine.svReady)return{cls:"ready",text:`Готово · ${MODEL_NAME(Engine.model)} · ${Engine.device==="webgpu"?"видеокарта":"процессор"}`};
+  if(Engine.w)return{cls:"loading",text:"Запускаю распознавание…"};
+  return{cls:"",text:"Распознавание запустится при записи"};
+}
+function refreshEngine(){const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
+
+/* =========================================================
+   Звук
+   ========================================================= */
+const SR=16000;
+class Resampler{
+  constructor(from){this.r=from/SR;this.frac=0;this.tail=new Float32Array(0)}
+  process(input){
+    let x=input;if(this.tail.length){x=new Float32Array(this.tail.length+input.length);x.set(this.tail);x.set(input,this.tail.length)}
+    const r=this.r;let p=this.frac;const n=Math.max(0,Math.floor((x.length-p)/r));const out=new Float32Array(n);
+    for(let k=0;k<n;k++){const a=Math.floor(p),b=Math.floor(p+r);if(b<=a){out[k]=x[a]||0}else{let s=0;for(let i=a;i<b;i++)s+=x[i];out[k]=s/(b-a)}p+=r}
+    const st=Math.min(x.length,Math.floor(p));this.tail=x.slice(st);this.frac=p-st;return out;
+  }
+}
+function decodeAudio(ctx,buf){return new Promise((res,rej)=>{let done=false;const ok=b=>{if(!done){done=true;res(b)}},no=e=>{if(!done){done=true;rej(e||new Error("decode"))}};const p=ctx.decodeAudioData(buf,ok,no);if(p&&p.then)p.then(ok,no)})}
+async function decodeTo16k(blob){
+  const buf=await blob.arrayBuffer();
+  const OAC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  let ab;
+  try{ab=await decodeAudio(new OAC(1,SR,SR),buf.slice(0))}
+  catch(e){ab=await decodeAudio(new OAC(1,44100,44100),buf)}
+  let ch;
+  if(ab.numberOfChannels>1){ch=new Float32Array(ab.length);for(let c=0;c<ab.numberOfChannels;c++){const d=ab.getChannelData(c);for(let i=0;i<d.length;i++)ch[i]+=d[i]/ab.numberOfChannels}}
+  else ch=ab.getChannelData(0).slice();
+  if(ab.sampleRate!==SR)ch=new Resampler(ab.sampleRate).process(ch);
+  return ch;
+}
+function concatAll(parts){const n=parts.reduce((a,p)=>a+p.length,0),r=new Float32Array(n);let o=0;parts.forEach(p=>{r.set(p,o);o+=p.length});return r}
+async function wavSlices(file){
+  const dv=new DataView(await file.slice(0,65536).arrayBuffer());
+  let p=12,fm=null,off=-1,len=0;
+  while(p+8<=dv.byteLength){const id=String.fromCharCode(dv.getUint8(p),dv.getUint8(p+1),dv.getUint8(p+2),dv.getUint8(p+3)),sz=dv.getUint32(p+4,true);
+    if(id==="fmt ")fm={ch:dv.getUint16(p+10,true),rate:dv.getUint32(p+12,true),bits:dv.getUint16(p+22,true)};
+    if(id==="data"){off=p+8;len=sz;break}p+=8+sz+(sz&1)}
+  if(!fm||off<0||fm.bits!==16)throw new Error("Этот WAV слишком большой и в необычном формате. Сохраните кусок 5–10 минут в MP3.");
+  const bpf=fm.ch*2,total=Math.floor(Math.min(len||Infinity,file.size-off)/bpf),frames=60*fm.rate,parts=[],n=8;
+  for(let i=0;i<n;i++){
+    const st=Math.max(0,Math.floor((total-frames)*(i+0.5)/n));const b=await file.slice(off+st*bpf,off+(st+frames)*bpf).arrayBuffer();
+    const s=new Int16Array(b,0,Math.floor(b.byteLength/2)),m=new Float32Array(Math.floor(s.length/fm.ch));
+    for(let k=0;k<m.length;k++){let v=0;for(let c=0;c<fm.ch;c++)v+=s[k*fm.ch+c];m[k]=v/fm.ch/32768}
+    parts.push(fm.rate===SR?m:new Resampler(fm.rate).process(m));
+  }
+  return concatAll(parts);
+}
+async function loadForEnroll(file){
+  const BIG=70e6,name=(file.name||"").toLowerCase();
+  if(file.size<=BIG)return decodeTo16k(file);
+  if(/\.wav$/.test(name)||/wav/.test(file.type))return wavSlices(file);
+  if(/\.mp3$/.test(name)||/mpeg/.test(file.type)){
+    const parts=[],n=8,len=1.6e6;
+    for(let i=0;i<n;i++){const o=Math.floor((file.size-len)*(i+0.5)/n);try{parts.push(await decodeTo16k(file.slice(o,o+len)))}catch(e){}}
+    if(!parts.length)throw new Error("Не удалось прочитать MP3.");return concatAll(parts);
+  }
+  try{return await decodeTo16k(file)}catch(e){throw new Error("Файл слишком большой для браузера. Вырежьте 5–10 минут речи босса или сохраните в MP3.")}
+}
+function frameStats(x){const F=320,n=Math.floor(x.length/F);let mx=0,sum=0;for(let f=0;f<n;f++){let s=0;for(let i=f*F;i<f*F+F;i++)s+=x[i]*x[i];const r=Math.sqrt(s/F);sum+=r;if(r>mx)mx=r}return{max:mx,mean:n?sum/n:0}}
+const isSilent=x=>x.length<SR*0.4||frameStats(x).max<0.008;
+class Chunker{
+  constructor(emit){this.emit=emit;this.buf=new Float32Array(SR*31);this.len=0;this.offset=0;this.last=0}
+  push(x){let i=0;while(i<x.length){const n=Math.min(x.length-i,this.buf.length-this.len);if(n<=0){this.cut(this.len);continue}this.buf.set(x.subarray(i,i+n),this.len);this.len+=n;i+=n;this.check()}}
+  check(){
+    const len=this.len;if(len<SR*10)return;
+    if(len<SR*28&&len-this.last<SR*0.5)return;this.last=len;
+    const F=320,nf=Math.floor(len/F),e=new Float32Array(nf);let tot=0;
+    for(let f=0;f<nf;f++){let s=0;const o=f*F;for(let i=0;i<F;i++){const v=this.buf[o+i];s+=v*v}e[f]=s/F;tot+=e[f]}
+    const mean=tot/nf,W=20,from=Math.floor(SR*8/F),to=nf-W-5;if(to<from){if(len>=SR*28)this.cut(len);return}
+    let s=0;for(let f=from;f<from+W;f++)s+=e[f];let best=from,bv=s;
+    for(let f=from+1;f<=to;f++){s+=e[f+W-1]-e[f-1];if(s<bv){bv=s;best=f}}
+    if(bv/W<mean*0.12||len>=SR*28)this.cut((best+W/2)*F);
+  }
+  cut(n){n=Math.min(n,this.len);if(n<=0)return;const pcm=this.buf.slice(0,n);const off=this.offset;this.offset+=n/SR;this.buf.copyWithin(0,n,this.len);this.len-=n;this.last=0;this.emit(pcm,off)}
+  flush(){if(this.len)this.cut(this.len)}
+}
+
+/* =========================================================
+   Записи
+   ========================================================= */
+const RECS=new Map();
+function newRecord(meta){return{id:uid(),created:Date.now(),updated:Date.now(),candidate:(meta.candidate||"").trim(),position:(meta.position||"").trim(),req:"",
+  status:"recording",source:meta.source||"mic",duration:0,lang:S.lang,model:S.model,audio:false,audioType:"",segs:[],spkInfo:null,ai:null,labeled:false}}
+async function getRec(id){if(RECS.has(id))return RECS.get(id);const r=await DB.get("recs",id);if(r){RECS.set(id,r)}return r||null}
+async function allRecs(){const list=await DB.all("recs").catch(()=>[]);return list.map(r=>RECS.get(r.id)||(RECS.set(r.id,r),r)).sort((a,b)=>b.created-a.created)}
+const saveTimers=new Map();
+async function saveRec(rec,{touch=true}={}){clearTimeout(saveTimers.get(rec.id));saveTimers.delete(rec.id);if(touch)rec.updated=Date.now();RECS.set(rec.id,rec);try{await DB.put("recs",rec.id,rec);askPersist();syncFolderSoon(rec)}catch(e){toast("Не удалось сохранить: "+(e&&e.message||"нет места в браузере"),"bad")}}
+function saveRecSoon(rec,ms=1200){clearTimeout(saveTimers.get(rec.id));saveTimers.set(rec.id,setTimeout(()=>saveRec(rec),ms))}
+async function saveAudio(rec,blob){try{await DB.put("audio",rec.id,{type:blob.type||"audio/webm",buf:await blob.arrayBuffer()});rec.audio=true;rec.audioType=blob.type||"audio/webm";rec.folderAudio=false}catch(e){toast("Звук не сохранился: мало места в браузере","bad")}}
+const audioCache=new Map();
+async function getAudio(rec){if(!rec.audio)return null;if(audioCache.has(rec.id))return audioCache.get(rec.id);const v=await DB.get("audio",rec.id).catch(()=>null);if(!v)return null;const b=new Blob([v.buf],{type:v.type});audioCache.set(rec.id,b);return b}
+async function deleteRec(id){Jobs.map.delete(id);await DB.del("recs",id).catch(()=>{});await DB.del("audio",id).catch(()=>{});RECS.delete(id);audioCache.delete(id)}
+const spkName=(rec,s)=>s==="boss"?(S.bossName||"Босс"):s==="cand"?(rec.candidate||"Кандидат"):s==="other"?"Другой":"…";
+const recTitle=rec=>rec.candidate||"Кандидат без имени";
+
+/* =========================================================
+   Очередь расшифровки
+   ========================================================= */
+const Jobs={
+  map:new Map(),subs:new Set(),
+  on(fn){this.subs.add(fn);return()=>this.subs.delete(fn)},
+  emit(id){this.subs.forEach(f=>{try{f(id)}catch(e){console.error(e)}});refreshEngine()},
+  get(id){if(!this.map.has(id))this.map.set(id,{total:0,doneSec:0,pending:0,closed:false,done:false,errors:0,lastError:""});return this.map.get(id)},
+  add(rec,pcm,offset){
+    const j=this.get(rec.id),dur=pcm.length/SR;j.total+=dur;
+    if(isSilent(pcm)){j.doneSec+=dur;this.emit(rec.id);return}
+    j.pending++;this.emit(rec.id);
+    Engine.transcribe(pcm,offset).then(m=>{
+      if(!RECS.has(rec.id))return;
+      m.segs.forEach(s=>{s.id=uid();s.spk=prelimSpk(s);s.conf=0;rec.segs.push(s)});
+      rec.segs.sort((a,b)=>a.t0-b.t0);if(m.model)rec.model=m.model;rec.device=m.device;
+      saveRecSoon(rec);
+    }).catch(e=>{j.errors++;j.lastError=e.message;console.error(e)}).finally(()=>{
+      j.pending--;j.doneSec+=dur;this.emit(rec.id);if(j.closed&&j.pending===0)this.finish(rec);
+    });
+  },
+  close(rec){const j=this.get(rec.id);j.closed=true;this.emit(rec.id);if(j.pending===0)this.finish(rec)},
+  async finish(rec){
+    const j=this.get(rec.id);if(j.done)return;j.done=true;
+    try{labelSpeakers(rec)}catch(e){console.error(e)}
+    rec.status=rec.segs.length?"ready":(j.errors?"error":"empty");
+    if(j.errors)rec.procError=j.lastError;
+    this.map.delete(rec.id);
+    await saveRec(rec);
+    if(rec.status==="ready"&&Folder.handle)await Folder.syncRec(rec,{audio:true});
+    this.emit(rec.id);
+    if(rec.status==="ready"){toast(`Готово: ${recTitle(rec)}. Расшифровка и анализ открыты`,"good");
+      if(S.ai.auto&&S.ai.provider!=="copy"&&S.ai.key)runAI(rec).catch(()=>{})}
+    else if(rec.status==="error")toast("Расшифровка не удалась: "+j.lastError,"bad",8000);
+    else toast("В записи не найдено речи. Проверьте микрофон.","warn",7000);
+  }
+};
+function prelimSpk(s){if(!PROFILE||!s.emb)return"?";return dot(s.emb,PROFILE.centroid)>=PROFILE.th?"boss":"cand"}
+
+/* =========================================================
+   Кто говорит
+   ========================================================= */
+function kmeans2(units,init){
+  let c=[normv(init[0]),normv(init[1])];const lab=new Array(units.length).fill(-1);
+  for(let it=0;it<25;it++){
+    let ch=false;
+    units.forEach((u,i)=>{const l=dot(u.e,c[0])>=dot(u.e,c[1])?0:1;if(l!==lab[i]){lab[i]=l;ch=true}});
+    const s=[[],[]],w=[[],[]];units.forEach((u,i)=>{s[lab[i]].push(u.e);w[lab[i]].push(u.w)});
+    for(const l of[0,1])if(s[l].length)c[l]=normv(meanVec(s[l],w[l]));
+    if(!ch)break;
+  }
+  return{lab,c};
+}
+function splitSentences(t){return(String(t).match(/[^.!?…]+[.!?…]*["»]?\s*/g)||[t]).map(x=>x.trim()).filter(Boolean)}
+function labelSpeakers(rec){
+  const P=PROFILE&&PROFILE.centroid?PROFILE:null;
+  const segs=rec.segs.filter(s=>s.emb);
+  if(!segs.length){rec.spkInfo={method:"none"};rec.labeled=true;return}
+  const units=[];
+  segs.forEach(s=>{if(s.wins&&s.wins.length>=3)s.wins.forEach(w=>units.push({e:w.emb,w:1.5}));else units.push({e:s.emb,w:clamp(s.t1-s.t0,0.5,10)})});
+  const manual=rec.segs.filter(s=>s.manual&&s.emb&&(s.spk==="boss"||s.spk==="cand"));
+  let c0,c1;
+  if(P){c0=P.centroid;let mn=Infinity;units.forEach(u=>{if(u.w<1)return;const v=dot(u.e,c0);if(v<mn){mn=v;c1=u.e}});if(!c1)c1=units[units.length-1].e}
+  else{const first=units.find(u=>u.w>=1.5)||units[0];let b=first,mn=Infinity;units.forEach(u=>{const v=dot(u.e,first.e);if(v<mn){mn=v;b=u}});let a=first,mn2=Infinity;units.forEach(u=>{const v=dot(u.e,b.e);if(v<mn2){mn2=v;a=u}});c0=a.e;c1=b.e}
+  const km=kmeans2(units,[c0,c1]),c=km.c,sep=dot(c[0],c[1]);
+  let bossC,info;
+  const mb=manual.filter(s=>s.spk==="boss"),mc=manual.filter(s=>s.spk==="cand");
+  if(mb.length||mc.length){const score=k=>mb.reduce((a,s)=>a+dot(s.emb,c[k]),0)-mc.reduce((a,s)=>a+dot(s.emb,c[k]),0);bossC=score(0)>=score(1)?0:1;info={method:"manual",sep}}
+  else if(P){const s0=dot(c[0],P.centroid),s1=dot(c[1],P.centroid);bossC=s0>=s1?0:1;info={method:"profile",sep,bossSim:Math.max(s0,s1),otherSim:Math.min(s0,s1)}}
+  else{const fu=units.find(u=>u.w>=1.5)||units[0];bossC=km.lab[units.indexOf(fu)];info={method:"cluster",sep}}
+  const n0=km.lab.filter(l=>l===0).length,single=sep>0.86||n0===0||n0===units.length;
+  info.single=single;
+  if(P&&info.method==="profile"&&!single&&info.bossSim<P.th-0.25)info.bossMissing=true;
+  rec.spkInfo=info;
+  const cB=c[bossC],cC=c[1-bossC];
+  const lab=e=>single?(P?(dot(e,P.centroid)>=P.th-0.1?"boss":"cand"):"boss"):(dot(e,cB)>=dot(e,cC)?"boss":"cand");
+  const conf=e=>single?(P?Math.abs(dot(e,P.centroid)-(P.th-0.1)):0.02):Math.abs(dot(e,cB)-dot(e,cC));
+  const out=[];
+  rec.segs.forEach(s=>{
+    if(!s.emb||s.manual){delete s.wins;out.push(s);return}
+    const wins=s.wins&&s.wins.length>=3?s.wins:null;delete s.wins;
+    if(!wins){s.spk=lab(s.emb);s.conf=conf(s.emb);out.push(s);return}
+    const wl=wins.map(w=>({t:w.t,l:lab(w.emb),c:conf(w.emb),e:w.emb}));
+    for(let i=1;i<wl.length-1;i++)if(wl[i-1].l===wl[i+1].l&&wl[i].l!==wl[i-1].l)wl[i].l=wl[i-1].l;
+    const sents=splitSentences(s.text),kinds=new Set(wl.map(w=>w.l));
+    if(kinds.size===1||sents.length<2){const nb=wl.filter(w=>w.l==="boss").length;s.spk=nb>=wl.length/2?"boss":"cand";s.conf=avg(wl.map(w=>w.c));out.push(s);return}
+    const tot=sents.reduce((a,x)=>a+x.length,0)||1;let acc=0;const parts=[];
+    sents.forEach(x=>{const st=s.t0+(s.t1-s.t0)*acc/tot;acc+=x.length;const en=s.t0+(s.t1-s.t0)*acc/tot,mid=(st+en)/2;
+      let b=wl[0];wl.forEach(w=>{if(Math.abs(w.t-mid)<Math.abs(b.t-mid))b=w});
+      const l=parts[parts.length-1];if(l&&l.spk===b.l){l.text+=" "+x;l.t1=en;l.ws.push(b)}else parts.push({t0:st,t1:en,text:x,spk:b.l,ws:[b]})});
+    parts.forEach(p=>out.push({id:uid(),t0:p.t0,t1:p.t1,text:p.text,spk:p.spk,conf:avg(p.ws.map(w=>w.c)),emb:normv(meanVec(p.ws.map(w=>w.e)))}));
+  });
+  for(let i=1;i<out.length-1;i++){const s=out[i];if(s.manual||!s.emb)continue;if(s.t1-s.t0<1.8&&s.conf<0.06&&out[i-1].spk===out[i+1].spk&&s.spk!==out[i-1].spk){s.spk=out[i-1].spk}}
+  rec.segs=out;rec.labeled=true;
+}
+const UNSURE=0.035;
+const isUnsure=s=>!s.manual&&s.spk!=="?"&&typeof s.conf==="number"&&s.conf<UNSURE&&!(s.t1-s.t0>6);
+function buildProfile(embs){
+  const n=embs.length;if(n<3)throw new Error("Слишком мало речи в образце. Нужно хотя бы 15–20 секунд, где говорит босс.");
+  let best=0,bs=-Infinity;const sims=embs.map(a=>embs.map(b=>dot(a,b)));
+  sims.forEach((r,i)=>{const m=avg(r);if(m>bs){bs=m;best=i}});
+  let keep=embs.filter((e,i)=>sims[best][i]>=0.6);
+  if(keep.length<Math.max(3,n*0.25))keep=embs.filter((e,i)=>sims[best][i]>=0.45);
+  if(keep.length<3)keep=embs;
+  const c=normv(meanVec(keep)),ss=keep.map(e=>dot(e,c)),m=avg(ss),sd=Math.sqrt(avg(ss.map(v=>(v-m)**2)));
+  return{centroid:c,n:keep.length,dropped:n-keep.length,mean:m,std:sd,th:clamp(m-4*sd,0.55,0.75),secs:keep.length*3};
+}
+function mergeProfile(old,neu,source){
+  neu.sources=[source];neu.updated=Date.now();
+  if(!old)return neu;
+  const w0=old.n,w1=neu.n,c=new Float32Array(neu.centroid.length);
+  for(let i=0;i<c.length;i++)c[i]=old.centroid[i]*w0+neu.centroid[i]*w1;
+  return{centroid:normv(c),n:w0+w1,dropped:(old.dropped||0)+neu.dropped,mean:(old.mean*w0+neu.mean*w1)/(w0+w1),std:Math.max(old.std,neu.std),
+    th:Math.min(old.th,neu.th),secs:(old.secs||0)+neu.secs,sources:[...(old.sources||[]),source].slice(-12),updated:Date.now()};
+}
+async function enrollFromPCM(pcm,source,onStatus){
+  const W=3*SR,wins=[];
+  for(let a=0;a+W<=pcm.length;a+=W){const r=frameStats(pcm.subarray(a,a+W));wins.push({a,r:r.mean})}
+  if(!wins.length)throw new Error("Образец слишком короткий: нужно хотя бы 15 секунд речи.");
+  const med=wins.map(w=>w.r).sort((x,y)=>x-y)[Math.floor(wins.length/2)];
+  let voiced=wins.filter(w=>w.r>Math.max(0.006,med*0.5));
+  const MAX=140;if(voiced.length>MAX){const step=voiced.length/MAX;voiced=Array.from({length:MAX},(_,i)=>voiced[Math.floor(i*step)])}
+  if(voiced.length<3)throw new Error("В образце почти нет речи. Проверьте файл.");
+  const packed=new Float32Array(voiced.length*W),win=[];
+  voiced.forEach((w,i)=>{packed.set(pcm.subarray(w.a,w.a+W),i*W);win.push([i*W,(i+1)*W])});
+  onStatus&&onStatus(`Изучаю голос: 0 из ${voiced.length} фрагментов…`);
+  const res=await Engine.embedWindows(packed,win,(d,t)=>onStatus&&onStatus(`Изучаю голос: ${d} из ${t} фрагментов…`));
+  const p=buildProfile(res.embs);
+  PROFILE=mergeProfile(PROFILE,p,source);await saveProfile();
+  return p;
+}
+
+/* =========================================================
+   Запись с микрофона
+   ========================================================= */
+const Recorder={
+  A:null,
+  async start(meta){
+    if(this.A)return;
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error("Браузер не даёт доступ к микрофону. Откройте сайт по ссылке https в Chrome или Safari.");
+    let stream;
+    try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true,channelCount:1}})}
+    catch(e){throw new Error(e&&e.name==="NotFoundError"?"Микрофон не найден. Подключите его и попробуйте снова.":"Нет доступа к микрофону. Chrome: значок слева от адреса → Микрофон → Разрешить. Safari: Safari → Настройки → Веб-сайты → Микрофон → Разрешить. На Mac ещё: Системные настройки → Конфиденциальность → Микрофон.")}
+    const AC=window.AudioContext||window.webkitAudioContext,ac=new AC();
+    if(ac.state==="suspended")await ac.resume().catch(()=>{});
+    const src=ac.createMediaStreamSource(stream);
+    const an=ac.createAnalyser();an.fftSize=1024;src.connect(an);
+    const proc=ac.createScriptProcessor(4096,1,1),mute=ac.createGain();mute.gain.value=0;src.connect(proc);proc.connect(mute);mute.connect(ac.destination);
+    const rs=ac.sampleRate===SR?null:new Resampler(ac.sampleRate);
+    const rec=newRecord({...meta,source:"mic"});RECS.set(rec.id,rec);await saveRec(rec);
+    const chunker=new Chunker((pcm,off)=>Jobs.add(rec,pcm,off));
+    const A={rec,stream,ac,src,an,proc,rs,chunker,samples:0,chunks:[],mr:null,mime:"",wake:null,speech:null,savedParts:0};
+    proc.onaudioprocess=e=>{const d=e.inputBuffer.getChannelData(0);const x=rs?rs.process(d):d;A.samples+=x.length;chunker.push(x)};
+    try{const mime=["audio/webm;codecs=opus","audio/mp4","audio/webm","audio/ogg;codecs=opus"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||"";
+      A.mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined);A.mime=A.mr.mimeType||mime||"audio/webm";
+      A.mr.ondataavailable=e=>{if(e.data&&e.data.size)A.chunks.push(e.data)};A.mr.start(1000)}catch(e){A.mr=null}
+    A.saver=setInterval(async()=>{rec.duration=A.samples/SR;if(A.chunks.length&&A.chunks.length!==A.savedParts){A.savedParts=A.chunks.length;await saveAudio(rec,new Blob(A.chunks,{type:A.mime}))}saveRec(rec)},30000);
+    try{A.wake=await navigator.wakeLock.request("screen")}catch(e){}
+    this.A=A;Engine.warm();
+    if($("#liveDraft").checked)this.startSpeech();
+    return rec;
+  },
+  startSpeech(){
+    const SRc=window.SpeechRecognition||window.webkitSpeechRecognition;const A=this.A;if(!SRc||!A)return;
+    try{const r=new SRc();r.lang={russian:"ru-RU",english:"en-US",ukrainian:"uk-UA"}[S.lang]||"ru-RU";r.continuous=true;r.interimResults=true;
+      let fin="";r.onresult=e=>{let it="";for(let i=e.resultIndex;i<e.results.length;i++){const t=e.results[i][0].transcript;if(e.results[i].isFinal)fin+=" "+t;else it+=t}const s=(fin+" "+it).trim();$("#draft").hidden=!s;$("#draft").textContent=s.length>260?"…"+s.slice(-260):s};
+      r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){A.speech=null;$("#draft").hidden=true}};
+      r.onend=()=>{if(this.A===A&&A.speech===r)setTimeout(()=>{try{r.start()}catch(e){}},300)};
+      A.speech=r;r.start()}catch(e){A.speech=null}
+  },
+  stopSpeech(){const A=this.A;if(A&&A.speech){const r=A.speech;A.speech=null;try{r.abort()}catch(e){}}$("#draft").hidden=true;$("#draft").textContent=""},
+  elapsed(){return this.A?this.A.samples/SR:0},
+  level(){const A=this.A;if(!A)return 0;A.an.getByteTimeDomainData(tbuf);let s=0;for(let i=0;i<tbuf.length;i++){const v=(tbuf[i]-128)/128;s+=v*v}return Math.min(1,Math.sqrt(s/tbuf.length)*6)},
+  async stop(){
+    const A=this.A;if(!A||A.stopping)return null;A.stopping=true;
+    this.stopSpeech();clearInterval(A.saver);
+    A.proc.onaudioprocess=null;try{A.src.disconnect();A.proc.disconnect()}catch(e){}
+    A.chunker.flush();
+    const blob=await new Promise(res=>{let done=false;const fin=()=>{if(done)return;done=true;res(A.chunks.length?new Blob(A.chunks,{type:A.mime}):null)};
+      if(!A.mr||A.mr.state==="inactive")return fin();A.mr.onstop=fin;try{A.mr.stop()}catch(e){fin()}setTimeout(fin,3000)});
+    try{A.stream.getTracks().forEach(t=>t.stop())}catch(e){}try{A.ac.close()}catch(e){}try{A.wake&&A.wake.release()}catch(e){}
+    const rec=A.rec;rec.duration=A.samples/SR;rec.status="processing";
+    if(blob){audioCache.set(rec.id,blob);await saveAudio(rec,blob)}
+    await saveRec(rec);this.A=null;Jobs.close(rec);return rec;
+  }
+};
+const tbuf=new Uint8Array(1024);
+
+async function processPCM(rec,pcm){
+  rec.duration=pcm.length/SR;rec.status="processing";rec.segs=[];rec.labeled=false;rec.model=S.model;rec.lang=S.lang;
+  Jobs.map.delete(rec.id);await saveRec(rec);
+  const ch=new Chunker((x,off)=>Jobs.add(rec,x,off));
+  for(let i=0;i<pcm.length;i+=SR*2){ch.push(pcm.subarray(i,Math.min(pcm.length,i+SR*2)))}
+  ch.flush();Jobs.close(rec);
+}
+async function importFile(file,meta){
+  if(!file)return;
+  if(file.size>400e6){toast("Файл больше 400 МБ. Сохраните запись в MP3 или M4A — так она станет в разы меньше.","bad",8000);return}
+  const rec=newRecord({...meta,source:"file"});if(!rec.candidate)rec.candidate=(file.name||"").replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").slice(0,60);
+  rec.fileName=file.name;RECS.set(rec.id,rec);rec.status="processing";await saveRec(rec);
+  location.hash="#i-"+rec.id;
+  try{
+    toast("Читаю файл…","",2500);
+    const pcm=await decodeTo16k(file);
+    const blob=file.type?file:new Blob([file],{type:"audio/mp4"});audioCache.set(rec.id,blob);await saveAudio(rec,blob);
+    Engine.warm();await processPCM(rec,pcm);
+  }catch(e){rec.status="error";rec.procError="Не удалось прочитать файл. Поддерживаются MP3, M4A, WAV, MP4, WEBM, OGG.";await saveRec(rec);Jobs.emit(rec.id);toast(rec.procError,"bad",8000)}
+}
+async function reprocess(rec){
+  const b=await getAudio(rec);if(!b){toast("Звук этой записи не сохранён — расшифровать заново нельзя.","bad");return}
+  if(rec.ai)rec.ai.stale=true;
+  try{const pcm=await decodeTo16k(b);Engine.warm();await processPCM(rec,pcm)}catch(e){toast("Не удалось прочитать звук: "+e.message,"bad")}
+}
+
+/* =========================================================
+   Метрики и оценка ответов (считает программа)
+   ========================================================= */
+const W=list=>new RegExp("(?:^|[^а-яёa-z0-9])(?:"+list+")(?=$|[^а-яёa-z0-9])","gi");
+const RX={
+  fill:W("ну|как бы|типа|это самое|короче|в общем|вообще-то|так сказать|блин|э+|м+|собственно|получается|скажем так|грубо говоря"),
+  hedge:W("наверное|возможно|может быть|в принципе|скорее всего|не знаю|не уверен|не уверена|как-то|где-то|примерно|вроде|вроде бы|как будто|надеюсь|постараюсь|попробую|по идее"),
+  act:W("сделал|сделала|добился|добилась|запустил|запустила|увеличил|увеличила|организовал|организовала|руководил|руководила|отвечал|отвечала|внедрил|внедрила|выстроил|выстроила|достиг|достигла|построил|построила|нашёл|нашел|нашла|продал|продала|привлёк|привлек|привлекла|договорился|договорилась|сократил|сократила|вырастил|вырастила|закрыл|закрыла|разработал|разработала|настроил|настроила|обучил|обучила|возглавил|возглавила|решил|решила|провёл|провел|провела|подготовил|подготовила|создал|создала|наладил|наладила|вывел|вывела|снизил|снизила|оптимизировал|оптимизировала"),
+  i:W("я|мне|меня|мной|мой|моя|моё|мое|мои|моих|лично"),
+  we:W("мы|нам|нас|нами|наш|наша|наше|наши|наших"),
+  neg:W("уволил[а-яё]*|уволь[а-яё]*|сократил[а-яё]*|сокращени[а-яё]*|конфликт[а-яё]*|не сложил[а-яё]*|не сработал[а-яё]*|не устраивал[а-яё]*|не платил[а-яё]*|задерживал[а-яё]*|бардак[а-яё]*|выгоран[а-яё]*|выгорел[а-яё]*|токсичн[а-яё]*|самодур[а-яё]*|обманул[а-яё]*|кинул[а-яё]*|не ценил[а-яё]*|испытательн[а-яё]*|не прош[её]л|не прошла"),
+  num:/\d|(?:^|[^а-яё])(?:один|одна|два|две|три|четыре|пять|шесть|семь|восемь|девять|десять|двадцать|тридцать|сорок|пятьдесят|сто|двести|триста|тысяч[а-яё]*|миллион[а-яё]*|процент[а-яё]*|полтора|полгода)(?![а-яё])/i,
+  q:/^(?:а\s+)?(?:как|что|чем|когда|где|куда|откуда|почему|зачем|сколько|можно|можете|могли бы|можешь|кто|какой|какая|какие|какое|каким|какую|каков|будет ли|есть ли|правильно|удобно|расскажите|расскажи|опишите|приведите|назовите|объясните|поясните|подскажите|скажите)(?![а-яё])/i
+};
+const MONEY=/\d[\d\s]*(?:[.,]\d+)?\s?(?:тыс(?:\.|яч[а-яё]*)?|млн|миллион[а-яё]*|к|кэ|тыщ[а-яё]*)?\s?(?:руб[а-яё.]*|₽|р\.|долл[а-яё]*|\$|евро|€)|\d+\s?(?:тыс(?:\.|яч[а-яё]*)?|тыщ[а-яё]*|к)(?=[\s.,]|$)|(?:зарплат[а-яё]*|оклад[а-яё]*|доход[а-яё]*)[^.?!]{0,40}\d[\d\s]*(?:тыс[а-яё.]*|к)?/gi;
+const EXPER=/(?:\d+|один|одного|два|двух|три|трёх|трех|четыре|четырёх|пять|пяти|шесть|шести|семь|семи|восемь|десять|десяти|пятнадцать|двадцать|полтора|полутора)\s*(?:с половиной\s*)?(?:год[а-яё]*|лет)/gi;
+const ccount=(re,t)=>{re.lastIndex=0;return(String(t).match(re)||[]).length};
+function turnsOf(rec){const T=[];rec.segs.forEach((s,i)=>{const l=T[T.length-1];if(l&&l.spk===s.spk&&s.t0-l.t1<5){l.text+=" "+s.text;l.t1=s.t1;l.idx.push(i)}else T.push({spk:s.spk,t0:s.t0,t1:s.t1,text:s.text,idx:[i]})});return T}
+const isQuestion=t=>/\?/.test(t)||RX.q.test(String(t).trim());
+function lastQuestion(text){const ss=splitSentences(text);for(let i=ss.length-1;i>=0;i--)if(isQuestion(ss[i]))return ss[i];return ss[ss.length-1]||text}
+function answerQuality(a){
+  const w=WORDS(a).length,nums=RX.num.test(a),acts=ccount(RX.act,a),iC=ccount(RX.i,a),weC=ccount(RX.we,a),hedge=ccount(RX.hedge,a),fill=ccount(RX.fill,a);
+  let s=0;const plus=[],minus=[];
+  if(w>=25)s++;if(w>=60)s++;
+  if(nums){s+=2;plus.push("есть цифры")}
+  if(acts){s+=acts>1?2:1;plus.push("говорит о своих действиях")}
+  if(iC>=2&&iC>=weC)s++;
+  if(weC>iC+2){s--;minus.push("«мы» вместо «я»")}
+  if(hedge>=2){s--;minus.push("много неуверенности")}
+  if(w<12){s-=2;minus.push("очень короткий ответ")}
+  else if(!nums&&!acts&&w>=12)minus.push("общие слова без примеров");
+  if(w>20&&fill/w>0.08){s--;minus.push("много слов-паразитов")}
+  return{rating:s>=5?"strong":s>=2?"mid":"weak",words:w,plus,minus};
+}
+const RATE_TXT={strong:"сильный",mid:"средний",weak:"слабый"};
+const rateFromAI=r=>/сильн/i.test(r||"")?"strong":/слаб/i.test(r||"")?"weak":"mid";
+function metrics(rec){
+  const T=turnsOf(rec),per={boss:{sec:0,words:0,turns:0},cand:{sec:0,words:0,turns:0},other:{sec:0,words:0,turns:0}};
+  rec.segs.forEach(s=>{const p=per[s.spk]||per.other;p.sec+=Math.max(0,s.t1-s.t0);p.words+=WORDS(s.text).length});
+  T.forEach(t=>(per[t.spk]||per.other).turns++);
+  const qa=[];
+  for(let i=0;i<T.length-1;i++){const a=T[i],b=T[i+1];if(a.spk==="boss"&&b.spk==="cand"&&splitSentences(a.text).some(isQuestion)){const q=answerQuality(b.text);qa.push({q:lastQuestion(a.text),qt:a.t0,a:b.text,at:b.t0,words:q.words,lat:Math.max(0,b.t0-a.t1),qual:q})}}
+  const candSents=[];T.filter(t=>t.spk==="cand").forEach(t=>splitSentences(t.text).forEach(s=>candSents.push({s,t:t.t0})));
+  const ct=T.filter(t=>t.spk==="cand").map(t=>t.text).join(" "),cw=Math.max(1,WORDS(ct).length);
+  const candQ=candSents.filter(x=>/\?/.test(x.s));
+  const negs=candSents.filter(x=>{RX.neg.lastIndex=0;return RX.neg.test(x.s)});
+  const money=[...new Set((ct.match(MONEY)||[]).map(x=>x.trim()))].slice(0,10);
+  const exper=[...new Set((ct.match(EXPER)||[]).map(x=>x.trim().toLowerCase()))].slice(0,10);
+  const STOP=new Set("это этот эта эти тоже того чтобы потому который которые которая которого также очень просто вообще сейчас когда если только можно нужно будет было были была есть или где там тут здесь такой такая такие какой какая какие всего всех себя свою свой своих после перед через между более менее много мало ничего что-то как-то вот так ещё еще уже даже может будто хотя ладно хорошо давайте понимаете знаете скажем говорю говорил сказал думаю кажется значит наверное именно например вопрос ответ".split(" "));
+  const freq={};WORDS(rec.segs.map(s=>s.text).join(" ")).forEach(w=>{if(w.length<5||STOP.has(w)||/^\d/.test(w))return;const k=w.slice(0,Math.max(5,w.length-2));const f=freq[k]=freq[k]||{n:0,f:{}};f.n++;f.f[w]=(f.f[w]||0)+1});
+  const topics=Object.values(freq).filter(x=>x.n>2).sort((a,b)=>b.n-a.n).slice(0,14).map(x=>({w:Object.entries(x.f).sort((a,b)=>b[1]-a[1])[0][0],n:x.n}));
+  const tot=per.boss.sec+per.cand.sec+per.other.sec||1;
+  const ans=qa.map(x=>x.words),avgAns=ans.length?Math.round(avg(ans)):0,shortAns=qa.filter(x=>x.words<12);
+  const strong=qa.filter(x=>x.qual.rating==="strong").length,weak=qa.filter(x=>x.qual.rating==="weak").length;
+  const concrete=qa.length?Math.round(qa.filter(x=>x.qual.plus.length).length/qa.length*100):null;
+  const m={T,per,tot,qa,avgAns,shortAns,candQ,negs,money,exper,topics,strong,weak,concrete,
+    fill:ccount(RX.fill,ct)/cw*100,hedge:ccount(RX.hedge,ct)/cw*100,act:ccount(RX.act,ct),iC:ccount(RX.i,ct),weC:ccount(RX.we,ct),
+    paceC:per.cand.sec>20?Math.round(per.cand.words/(per.cand.sec/60)):null,paceB:per.boss.sec>20?Math.round(per.boss.words/(per.boss.sec/60)):null,
+    bossQ:T.filter(t=>t.spk==="boss").reduce((a,t)=>a+splitSentences(t.text).filter(isQuestion).length,0),
+    lat:qa.length?avg(qa.map(x=>x.lat)):0,unsure:rec.segs.filter(isUnsure).length};
+  const sig=[];const bShare=per.boss.sec/tot*100,cShare=per.cand.sec/tot*100;
+  if(per.cand.words<30)sig.push(["info","Кандидат сказал очень мало — выводы по речи неточные."]);
+  else{
+    if(bShare>50)sig.push(["warn",`${S.bossName} говорил ${Math.round(bShare)} % времени. Хорошо, когда кандидат говорит 60–70 %, — иначе о нём мало что узнаёшь.`]);
+    else if(cShare>=55)sig.push(["good",`Кандидат говорил ${Math.round(cShare)} % времени — хороший баланс для собеседования.`]);
+    if(qa.length>=3&&weak/qa.length>=0.5)sig.push(["warn",`Слабых ответов ${weak} из ${qa.length}: коротко, без цифр и личных примеров.`]);
+    if(qa.length>=3&&strong/qa.length>=0.5)sig.push(["good",`Сильных ответов ${strong} из ${qa.length}: с цифрами и личными действиями.`]);
+    if(qa.length>=3&&avgAns>140)sig.push(["info",`Ответы очень длинные: в среднем ${avgAns} слов. Проверьте, отвечает ли он по существу.`]);
+    if(m.fill>6)sig.push(["warn",`Много слов-паразитов: ${m.fill.toFixed(1)} на 100 слов. Волнение или неуверенность в теме.`]);
+    if(m.hedge>3)sig.push(["warn",`Много неуверенных формулировок («наверное», «не знаю», «в принципе»): ${m.hedge.toFixed(1)} на 100 слов.`]);
+    if(m.weC>m.iC*1.3&&m.weC>5)sig.push(["warn",`Чаще говорит «мы» (${m.weC}), чем «я» (${m.iC}). Уточните его личный вклад.`]);
+    if(m.act>=5)sig.push(["good",`Часто говорит о результатах своих действий («сделал», «запустил», «увеличил»): ${m.act} раз.`]);
+    if(!candQ.length&&per.cand.words>200)sig.push(["warn","Кандидат не задал ни одного вопроса о работе. Возможно, низкий интерес."]);
+    else if(candQ.length>=3)sig.push(["good",`Кандидат задал ${pl(candQ.length,"вопрос","вопроса","вопросов")} — интересуется работой.`]);
+    if(negs.length)sig.push(["warn",`Есть негатив о прошлом опыте (${negs.length}): увольнения, конфликты, «не сложилось».`]);
+    if(m.lat>3&&qa.length>=3)sig.push(["info",`Долгие паузы перед ответами: в среднем ${m.lat.toFixed(1)} с.`]);
+    if(!money.length&&per.cand.words>300)sig.push(["info","Не прозвучали зарплатные ожидания."]);
+  }
+  m.sig=sig;return m;
+}
+
+/* =========================================================
+   Глубокий анализ (Claude)
+   ========================================================= */
+function transcriptText(rec){return turnsOf(rec).map(t=>`[${fmt(t.t0)}] ${spkName(rec,t.spk)}: ${t.text}`).join("\n")}
+function plainTranscript(rec){return`${recTitle(rec)}${rec.position?" · "+rec.position:""}\n${dateStr(rec.created)} · ${fmtLong(rec.duration)}\n\n`+transcriptText(rec)}
+const SCHEMA=`{
+  "verdict": {
+    "decision": "нанимать | скорее да | под вопросом | скорее нет | не нанимать",
+    "score": 0-100,
+    "confidence": 0-100,
+    "one_line": "вывод одной фразой, до 15 слов",
+    "summary": "3–4 предложения: кто этот человек и почему такое решение",
+    "deciding_factors": ["3–5 главных причин решения, каждая до 15 слов"],
+    "hire_if": "что должно подтвердиться, чтобы нанять (или что точно помешает)"
+  },
+  "candidate": {"experience": "", "current_situation": "где сейчас и почему ищет", "salary": "ожидания или «не обсуждали»", "availability": "когда готов выйти", "facts": ["конкретные факты"]},
+  "answers": [{"question": "вопрос коротко", "t": "мм:сс", "rating": "сильный | средний | слабый", "why": "одно предложение: что было конкретно и чего не хватило"}],
+  "competencies": [{"name": "", "score": 1-5, "evidence": "дословная цитата до 15 слов", "t": "мм:сс", "comment": "почему такая оценка"}],
+  "strengths": [{"point": "", "quote": "", "t": "мм:сс"}],
+  "risks": [{"point": "", "severity": "высокий | средний | низкий", "quote": "", "t": "мм:сс", "how_to_check": "как проверить"}],
+  "red_flags": [{"point": "только серьёзные стоп-сигналы", "quote": "", "t": "мм:сс"}],
+  "inconsistencies": [{"point": "", "quotes": [{"text": "", "t": "мм:сс"}]}],
+  "evasions": [{"question": "", "what_happened": "", "t": "мм:сс"}],
+  "motivation": {"type": "к чему стремится / от чего бежит", "drivers": [""], "comment": ""},
+  "communication": {"summary": "", "observations": [""]},
+  "culture_fit": "",
+  "not_covered": ["важные темы, которые не обсудили"],
+  "followups": [{"question": "", "why": ""}],
+  "reference_checks": [""],
+  "interviewer_feedback": [{"point": "что улучшить в проведении собеседования", "t": "мм:сс"}],
+  "transcript_issues": ""
+}`;
+function buildPrompt(rec){
+  const m=metrics(rec),boss=S.bossName||"Босс",cand=rec.candidate||"Кандидат";
+  const system=`Ты — сильный директор по персоналу с опытом найма в малый и средний бизнес в России и образованием психолога. Ты разбираешь собеседование для руководителя, который сам его провёл и сейчас решает, брать ли человека. Ему нужен короткий, точный и честный разбор, а не эссе.
+
+Говорящие в расшифровке: «${boss}» — руководитель, проводит собеседование; «${cand}» — кандидат. Расшифровка автоматическая: в словах бывают ошибки, изредка реплика приписана не тому. Если по смыслу реплику явно сказал другой человек, считай её репликой того, кто сказал.
+
+Правила разбора:
+1. Только факты из разговора. Каждый вывод подкрепляй дословной цитатой (до 15 слов) и временем [мм:сс] из расшифровки. Не выдумывай того, чего не было.
+2. Оцени каждый содержательный вопрос руководителя и ответ на него: сильный — конкретика, цифры, личные действия и результат (ситуация → задача → действие → результат); средний — по делу, но без доказательств; слабый — общие слова, уход от ответа, противоречие.
+3. Ищи: противоречия между частями разговора, уходы от вопросов, заученные фразы, перекладывание ответственности, «мы» вместо «я», негатив о прошлых работодателях, нестыковки в датах и цифрах.
+4. Мотивация: к чему человек идёт и от чего уходит. Деньги, сроки выхода, ожидания — если не обсуждали, так и пиши.
+5. Решение: оценка 0–100 и вердикт. Если данных мало — снижай confidence и прямо пиши, чего не хватает. Не смягчай и не льсти.
+6. Пиши по-русски, просто и коротко: каждый пункт — одно-два предложения. Без канцелярита и воды. Не повторяй одно и то же в разных разделах.
+7. Дай руководителю честную обратную связь по проведению собеседования и конкретные вопросы для второй встречи.
+
+Ответ — строго один JSON-объект, без текста до и после, по схеме:
+${SCHEMA}
+
+Компетенции (5–7) выбери под вакансию. Оценки 1–5: 1 — нет, 3 — средне, 5 — сильно. Пустые разделы возвращай пустыми массивами.`;
+  const user=`Вакансия: ${rec.position||"не указана"}
+${rec.req?"Что важно в кандидате (от руководителя):\n"+rec.req+"\n":""}${S.ai.context?"О компании:\n"+S.ai.context+"\n":""}
+Дата: ${dateStr(rec.created)}. Длительность: ${fmtLong(rec.duration)}.
+Метрики, посчитанные программой: ${boss} говорил ${Math.round(m.per.boss.sec/m.tot*100)} % времени, кандидат — ${Math.round(m.per.cand.sec/m.tot*100)} %. Вопросов от руководителя: ${m.bossQ}. Средний ответ кандидата: ${m.avgAns} слов. Слов-паразитов у кандидата: ${m.fill.toFixed(1)} на 100 слов. Вопросов от кандидата: ${m.candQ.length}.
+
+Расшифровка:
+${transcriptText(rec)}`;
+  return{system,user};
+}
+function parseAI(text){
+  let t=String(text||"").trim().replace(/^```(?:json)?/i,"").replace(/```\s*$/,"").trim();
+  const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a<0||b<a)throw new Error("В ответе нет анализа. Скопируйте ответ Claude целиком — он начинается с {.");
+  t=t.slice(a,b+1);
+  let d;try{d=JSON.parse(t)}catch(e){try{d=JSON.parse(t.replace(/,\s*([}\]])/g,"$1").replace(/[“”]/g,'"'))}catch(e2){throw new Error("Ответ обрезан или повреждён. Скопируйте его целиком ещё раз (в claude.ai — кнопка «Копировать» под ответом).")}}
+  if(!d||typeof d!=="object"||!d.verdict)throw new Error("Это не похоже на анализ Grass Voice: нет раздела verdict.");
+  return d;
+}
+function apiError(status,j){
+  const msg=j&&(j.error&&(j.error.message||j.error)||j.message)||"";
+  if(status===401||status===403)return(status===403&&/region|country|territor|supported/i.test(msg))?"Этот API недоступен из вашей страны. Используйте режим «Через claude.ai» или OpenRouter.":"Ключ не подходит. Проверьте его в настройках.";
+  if(status===404)return"Модель не найдена. Проверьте название модели в настройках.";
+  if(status===429)return"Слишком много запросов или закончился лимит. Подождите минуту.";
+  if(status===529||status>=500)return"Сервер ИИ перегружен. Попробуйте через пару минут.";
+  return"Ошибка "+status+(msg?": "+msg:"");
+}
+async function callLLM(system,user){
+  const A=S.ai;if(!A.key)throw new Error("Укажите ключ API в настройках.");
+  let r;
+  try{
+    if(A.provider==="anthropic"){
+      const base=(A.base||"https://api.anthropic.com").replace(/\/+$/,"");
+      r=await fetch(base+"/v1/messages",{method:"POST",headers:{"content-type":"application/json","x-api-key":A.key,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+        body:JSON.stringify({model:A.model||"claude-opus-5-5",max_tokens:16000,system,messages:[{role:"user",content:user}]})});
+    }else{
+      const base=(A.base||"https://openrouter.ai/api/v1").replace(/\/+$/,"");
+      r=await fetch(base+"/chat/completions",{method:"POST",headers:{"content-type":"application/json","authorization":"Bearer "+A.key},
+        body:JSON.stringify({model:A.model,max_tokens:16000,temperature:0.2,messages:[{role:"system",content:system},{role:"user",content:user}]})});
+    }
+  }catch(e){throw new Error("Нет связи с сервером ИИ. Из России API Anthropic напрямую не работает — используйте режим «Через claude.ai» или OpenRouter.")}
+  const j=await r.json().catch(()=>null);
+  if(!r.ok)throw new Error(apiError(r.status,j));
+  if(A.provider==="anthropic")return(j.content||[]).filter(c=>c.type==="text").map(c=>c.text).join("");
+  return j.choices&&j.choices[0]&&j.choices[0].message&&j.choices[0].message.content||"";
+}
+const AIRUN=new Set();
+function segHash(rec){return rec.segs.length+":"+rec.segs.reduce((a,s)=>a+s.text.length+(s.spk==="boss"?1:s.spk==="cand"?2:3),0)}
+async function runAI(rec){
+  if(AIRUN.has(rec.id))return;AIRUN.add(rec.id);rec.aiError=null;rerenderIfOpen(rec.id);
+  try{const{system,user}=buildPrompt(rec);const text=await callLLM(system,user);const data=parseAI(text);
+    rec.ai={data,created:Date.now(),model:S.ai.model||S.ai.provider,hash:segHash(rec)};await saveRec(rec);toast("Глубокий анализ готов: "+recTitle(rec),"good")}
+  catch(e){rec.aiError=e.message;toast(e.message,"bad",8000)}
+  finally{AIRUN.delete(rec.id);rerenderIfOpen(rec.id)}
+}
+
+/* =========================================================
+   Живая волна
+   ========================================================= */
+class Wave{
+  constructor(cv,base=0.08){this.cv=cv;this.cx=cv.getContext("2d");this.lv=0;this.t=Math.random()*60;this.base=base;this.w=0;this.h=0;
+    this.blobs=[[139,108,255],[255,95,162],[255,148,71],[77,214,255],[255,212,59],[120,90,255]].map((c,i)=>({c:c.join(","),ph:i*1.9,sx:0.11+i*0.031,sy:0.09+i*0.027,r:0.34+((i*37)%9)/38}))}
+  size(){const r=Math.min(1.5,window.devicePixelRatio||1),w=this.cv.clientWidth,h=this.cv.clientHeight;if(!w||!h)return false;if(w!==this.w||h!==this.h){this.w=w;this.h=h;this.cv.width=w*r;this.cv.height=h*r;this.cx.setTransform(r,0,0,r,0,0)}return true}
+  draw(level,dt){
+    if(!this.size())return;
+    const{cx,w,h}=this;this.lv+=(Math.max(level,this.base)-this.lv)*0.14;const L=this.lv;this.t+=dt*(0.22+L*2.6);
+    cx.clearRect(0,0,w,h);cx.globalCompositeOperation="lighter";
+    const m=Math.max(220,Math.min(w,h*1.4));
+    this.blobs.forEach((b,i)=>{
+      const x=w/2+Math.sin(this.t*b.sx*5+b.ph)*w*0.2*(1+L*0.5);
+      const y=h*0.48+Math.cos(this.t*b.sy*5+b.ph*1.3)*h*0.18*(1+L*0.5);
+      const r=m*b.r*(0.62+L*0.95+0.05*Math.sin(this.t*2.2+i));
+      const g=cx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,`rgba(${b.c},0.5)`);g.addColorStop(0.45,`rgba(${b.c},0.16)`);g.addColorStop(1,`rgba(${b.c},0)`);
+      cx.fillStyle=g;cx.fillRect(0,0,w,h);
+    });
+    cx.globalCompositeOperation="source-over";
+  }
+}
+const WAVES={};
+const RM=matchMedia("(prefers-reduced-motion: reduce)");
+let lastT=performance.now();
+function frame(now){
+  const dt=Math.min(0.1,(now-lastT)/1000);lastT=now;
+  const A=Recorder.A;
+  if(A){const t=fmt(Recorder.elapsed());$("#recbarTime").textContent=t;if(curView==="new")$("#recTime").textContent=t}
+  const mv=RM.matches?0:dt;
+  if(curView==="new"&&WAVES.rec)WAVES.rec.draw(A?Recorder.level():0.06+0.03*Math.sin(now/900),A?mv:mv*0.6);
+  if(curView==="home"&&WAVES.home)WAVES.home.draw(0.1+0.04*Math.sin(now/1300),mv*0.7);
+  requestAnimationFrame(frame);
+}
+
+/* =========================================================
+   Общие куски интерфейса
+   ========================================================= */
+const decClass=d=>{d=String(d||"").toLowerCase();return/не нанимать|скорее нет/.test(d)?"bad":/под вопросом/.test(d)?"warn":/нанимать|скорее да/.test(d)?"good":"warn"};
+function statusChip(rec){
+  if(Jobs.map.has(rec.id)||rec.status==="processing")return'<span class="chip info"><span class="spin" style="width:10px;height:10px"></span>Расшифровка</span>';
+  if(rec.status==="recording")return Recorder.A&&Recorder.A.rec.id===rec.id?'<span class="chip bad">● Запись</span>':'<span class="chip warn">Прервана</span>';
+  if(rec.status==="error")return'<span class="chip bad">Ошибка</span>';
+  if(rec.status==="empty")return'<span class="chip warn">Нет речи</span>';
+  if(rec.ai&&rec.ai.data&&rec.ai.data.verdict){const v=rec.ai.data.verdict;return`<span class="chip ${decClass(v.decision)}">${esc(v.decision)}${v.score!=null?" · "+esc(v.score):""}</span>`}
+  return'<span class="chip">Ждёт анализа</span>';
+}
+function profileNote(){
+  if(PROFILE)return note("good",`<p><b>Голос «${esc(S.bossName)}» настроен.</b> Программа сама подпишет, где говорит ${esc(S.bossName)}, а где кандидат.</p>`);
+  return note("warn",`<p><b>Голос босса не настроен.</b> Программа разделит двух людей, но может перепутать, кто из них босс. Загрузите 1–5 минут его речи — это займёт минуту.</p><p><a href="#settings">Настроить голос →</a></p>`);
+}
+function refreshView(){if(curView==="home")renderHome();else if(curView==="settings")renderSettings();else if(curView==="int"&&INT)renderSaved()}
+
+/* ---------- главная ---------- */
+let listQuery="";
+async function renderHome(){
+  const v=$("#v-home");const list=await allRecs();const st=await storageInfo();
+  const q=listQuery.toLowerCase();const items=list.filter(r=>!q||(r.candidate+" "+r.position).toLowerCase().includes(q));
+  const es=engineState(),eng=Engine.asrReady&&Engine.svReady;
+  const fState=Folder.handle?(Folder.state==="granted"?"ok":"wait"):"";
+  v.innerHTML=`
+  <div class="hero"><canvas id="homeWave" aria-hidden="true"></canvas>
+    <div class="hero-in"><h1>Собеседование —<br>в разбор за минуту</h1>
+      <p>Запишите разговор. Grass Voice расшифрует его, отделит голос босса от кандидата и разберёт ответы: где конкретика, где вода и стоит ли брать человека.</p>
+      <div class="row"><a class="btn primary big" href="#new">Начать запись</a><label class="btn big"><input type="file" id="lImport" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.mov,.aac,.flac" hidden>Загрузить запись</label></div>
+    </div></div>
+  <div class="steps">
+    <div class="step"><div class="n"><span>1 · Голос босса</span><i class="dot ${PROFILE?"ok":"wait"}"></i></div><b>${PROFILE?"Настроен":"Не настроен"}</b><p>${PROFILE?`${fmtLong(PROFILE.secs)} образца. Программа узнает «${esc(S.bossName)}» в любой записи.`:"Нужен один раз: 1–5 минут его речи из любой записи."}</p>${PROFILE?"":'<a class="btn sm primary" href="#settings">Настроить</a>'}</div>
+    <div class="step"><div class="n"><span>2 · Распознавание</span><i class="dot ${eng?"ok":es.cls==="loading"?"wait":""}"></i></div><b>${eng?"Готово":Engine.dlInfo()?"Скачивается":"Скачается при записи"}</b><p>${eng?`${MODEL_NAME(Engine.model)} модель, ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}. Работает прямо в браузере.`:"Модели качаются один раз и хранятся в браузере. Звук никуда не отправляется."}</p>${eng?"":'<button class="btn sm" id="hWarm">Скачать сейчас</button>'}</div>
+    <div class="step"><div class="n"><span>3 · Анализ</span><i class="dot ok"></i></div><b>${S.ai.provider==="copy"?"Через claude.ai":"Автоматически"}</b><p>${S.ai.provider==="copy"?"Метрики считаются сразу. Глубокий разбор — в два клика через ваш claude.ai.":"Метрики сразу, глубокий разбор Claude — сам после расшифровки."}</p></div>
+    <div class="step"><div class="n"><span>4 · Где хранится</span><i class="dot ${fState||"ok"}"></i></div><b>${Folder.handle?`Браузер + папка «${esc(Folder.name())}»`:"В этом браузере"}</b><p>${pl(list.length,"собеседование","собеседования","собеседований")} · ${Math.round(st.used/1e6)} МБ вместе с моделями.${Folder.handle?(Folder.state==="granted"?" Копии в папке обновляются сами.":" Нужно разрешить доступ к папке."):" Можно добавить копии в обычную папку."}</p>
+      ${Folder.handle&&Folder.state!=="granted"?'<button class="btn sm primary" id="hAllow">Разрешить доступ</button>':!Folder.handle&&Folder.supported?'<button class="btn sm" id="hFolder">Выбрать папку</button>':""}</div>
+  </div>
+  ${!DB.ok?note("bad","<p><b>Браузер не даёт сохранять данные.</b> Записи пропадут после закрытия вкладки. Откройте сайт не в режиме «Инкогнито».</p>"):""}
+  <div class="card">
+    <div class="card-h"><h2>Собеседования</h2>${list.length>4?`<input type="search" id="lSearch" placeholder="Поиск по имени или вакансии" value="${esc(listQuery)}" style="max-width:300px">`:""}</div>
+    <div class="list" style="padding:6px 8px 10px">${items.length?items.map(r=>{
+      const w=r.segs.reduce((a,s)=>a+WORDS(s.text).length,0);const d=r.ai&&r.ai.data&&r.ai.data.verdict;
+      const sub=(d&&(d.one_line||d.summary))||(r.segs[0]&&r.segs[0].text)||(r.status==="processing"?"Идёт расшифровка…":"Нет текста");
+      return`<a class="item" href="#i-${r.id}">${avatar(recTitle(r))}<div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span class="muted" style="font-weight:500">· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p><div class="meta">${dateShort(r.created)} · ${fmt(r.duration)} · ${pl(w,"слово","слова","слов")}${r.folderDir?" · в папке":""}</div></div><div class="item-r">${statusChip(r)}</div></a>`}).join("")
+      :list.length?'<div class="empty">Ничего не найдено.</div>':`<div class="empty"><b>Пока пусто</b><span>Здесь появятся собеседования. Каждое сохраняется автоматически: звук, расшифровка и анализ.</span></div>`}</div>
+  </div>`;
+  WAVES.home=new Wave($("#homeWave"),0.1);
+  const s=$("#lSearch");if(s){s.oninput=()=>{listQuery=s.value;renderHome().then(()=>{const n=$("#lSearch");n.focus();n.setSelectionRange(n.value.length,n.value.length)})}}
+  $("#lImport").onchange=e=>{const f=e.target.files[0];e.target.value="";importFile(f,{})};
+  if($("#hWarm"))$("#hWarm").onclick=async e=>{e.currentTarget.disabled=true;await Engine.warm();if(curView==="home")renderHome()};
+  if($("#hFolder"))$("#hFolder").onclick=pickFolder;
+  if($("#hAllow"))$("#hAllow").onclick=async()=>{await Folder.allow();renderHome()};
+}
+async function pickFolder(){try{await Folder.pick();toast(`Копии будут сохраняться в папку «${Folder.name()}»`,"good");refreshView()}catch(e){if(e&&e.name!=="AbortError")toast("Не удалось выбрать папку: "+e.message,"bad")}}
+
+/* ---------- запись ---------- */
+function renderNew(){
+  $("#nProfile").innerHTML=profileNote();
+  if(S.liveDraft==null){const ua=navigator.userAgent;S.liveDraft=!!(window.webkitSpeechRecognition||window.SpeechRecognition)&&/Chrome|Edg/.test(ua)}
+  $("#liveDraft").checked=!!S.liveDraft;
+  if(!(window.webkitSpeechRecognition||window.SpeechRecognition))$("#liveDraft").closest("label").hidden=true;
+  if(!WAVES.rec)WAVES.rec=new Wave($("#wave"),0.06);
+  setRecUI();renderLive();
+  if(!Recorder.A)Engine.warm();
+}
+function setRecUI(){
+  const on=!!Recorder.A;
+  $("#recBtn").classList.toggle("on",on);$("#recIco").innerHTML=on?ICON.stop:ICON.mic;
+  $("#recBtn").setAttribute("aria-label",on?"Закончить запись":"Начать запись");
+  $("#recHint").textContent=on?"Идёт запись. Говорите как обычно. Нажмите, чтобы закончить — откроется анализ":"Нажмите, чтобы начать запись собеседования";
+  $("#recbar").hidden=!on||curView==="new";
+  if(!on)$("#recTime").textContent="00:00";
+}
+function renderLive(){
+  const box=$("#liveList");const A=Recorder.A;const rec=A&&A.rec;
+  if(!rec){box.innerHTML=`<div class="empty"><b>Здесь появится текст разговора</b><span>Реплики подписываются автоматически: «${esc(S.bossName)}» и кандидат. Когда закончите, нажмите кнопку ещё раз — откроется анализ. Запись сохраняется каждые 30 секунд.</span></div>`;$("#liveStat").textContent="";return}
+  const j=Jobs.map.get(rec.id);
+  if(!rec.segs.length){box.innerHTML=`<div class="empty"><b>Слушаю…</b><span>${Engine.dlInfo()?"Модели ещё скачиваются (это один раз). Запись уже идёт — текст появится после загрузки.":"Первый кусок текста появится после паузы в речи, примерно через 10–25 секунд."}</span></div>`}
+  else box.innerHTML=transcriptHTML(rec,{live:true});
+  const w=rec.segs.reduce((a,s)=>a+WORDS(s.text).length,0);
+  $("#liveStat").textContent=pl(w,"слово","слова","слов")+(j&&j.pending?` · расшифровываю ${pl(j.pending,"кусок","куска","кусков")}`:"");
+}
+$("#recBtn").onclick=async()=>{
+  const btn=$("#recBtn");btn.disabled=true;
+  try{
+    if(Recorder.A){const rec=await Recorder.stop();setRecUI();if(rec){$("#nCand").value="";$("#nPos").value="";location.hash="#i-"+rec.id}}
+    else{await Recorder.start({candidate:$("#nCand").value,position:$("#nPos").value});setRecUI();renderLive()}
+  }catch(e){toast(e.message,"bad",9000)}
+  finally{btn.disabled=false}
+};
+$("#nCand").oninput=()=>{if(Recorder.A){Recorder.A.rec.candidate=$("#nCand").value.trim();saveRecSoon(Recorder.A.rec)}};
+$("#nPos").oninput=()=>{if(Recorder.A){Recorder.A.rec.position=$("#nPos").value.trim();saveRecSoon(Recorder.A.rec)}};
+$("#liveDraft").onchange=e=>{S.liveDraft=e.target.checked;saveSettings();if(Recorder.A){if(S.liveDraft)Recorder.startSpeech();else Recorder.stopSpeech()}};
+$("#importFile").onchange=e=>{const f=e.target.files[0];e.target.value="";importFile(f,{candidate:$("#nCand").value,position:$("#nPos").value})};
+(()=>{const z=$("#importZone");["dragenter","dragover"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.add("drag")}));["dragleave","drop"].forEach(t=>z.addEventListener(t,e=>{e.preventDefault();z.classList.remove("drag")}));z.addEventListener("drop",e=>{const f=e.dataTransfer.files[0];if(f)importFile(f,{candidate:$("#nCand").value,position:$("#nPos").value})})})();
+
+/* ---------- расшифровка ---------- */
+function hl(text,q){const e=esc(text);if(!q)return e;const qq=esc(q).replace(/[.*+?^${}()|[\]\\]/g,"\\$&");return e.replace(new RegExp(qq,"gi"),m=>`<mark>${m}</mark>`)}
+const spkOpts=(rec,cur)=>["boss","cand","other"].map(k=>`<option value="${k}" ${cur===k?"selected":""}>${esc(spkName(rec,k))}</option>`).join("");
+function transcriptHTML(rec,{live=false,q="",edit=false}={}){
+  if(edit)return rec.segs.map((s,i)=>`<div class="editrow"><button class="ts" data-seek="${s.t0}">${fmt(s.t0)}</button><select data-seg="${i}" aria-label="Кто говорит">${spkOpts(rec,s.spk)}</select><div class="txt" contenteditable="true" spellcheck="true" data-edit="${i}">${esc(s.text)}</div></div>`).join("");
+  return turnsOf(rec).map((t,ti)=>{
+    const uns=!live&&t.idx.some(i=>isUnsure(rec.segs[i]));
+    const name=t.spk==="?"?"Определяю голос…":spkName(rec,t.spk);
+    const who=live||t.spk==="?"?`<span>${esc(name)}</span>`:`<select data-turn="${ti}" aria-label="Кто говорит">${spkOpts(rec,t.spk)}</select>`;
+    return`<div class="turn" data-spk="${t.spk}"><button class="ts" data-seek="${t.t0}" title="Слушать с этого места">${fmt(t.t0)}</button>
+      <div class="tb"><div class="spk">${who}${uns?'<span class="unsure" title="Программа не уверена, кто это сказал">проверьте, кто говорит</span>':""}</div>
+      <div class="txt">${t.idx.map(i=>`<span class="seg" data-s="${i}">${hl(rec.segs[i].text,q)}</span>`).join(" ")}</div></div></div>`}).join("");
+}
+
+/* ---------- собеседование ---------- */
+let INT=null;
+function rerenderIfOpen(id){if(INT&&INT.rec.id===id&&curView==="int"){renderIntBody();renderIntProc()}}
+async function renderInt(id){
+  const v=$("#v-int");const rec=await getRec(id);
+  if(!rec){v.innerHTML=`<div class="card empty"><b>Запись не найдена</b><span>Возможно, её удалили или она сохранена в другом браузере.</span><a class="btn" href="#home">К списку</a></div>`;return}
+  if(!INT||INT.rec.id!==id){if(INT&&INT.url)URL.revokeObjectURL(INT.url);INT={rec,tab:"analysis",q:"",edit:false,url:null}}
+  INT.rec=rec;
+  v.innerHTML=`
+  <div class="card">
+    <div class="ihead">${avatar(recTitle(rec),"lg")}
+      <div class="titles">
+        <input class="ttl" id="iCand" type="text" value="${esc(rec.candidate)}" placeholder="Имя кандидата" aria-label="Имя кандидата">
+        <input class="sub" id="iPos" type="text" value="${esc(rec.position)}" placeholder="Вакансия — нажмите, чтобы указать" aria-label="Вакансия">
+        <div class="meta"><span>${dateStr(rec.created)}</span><span>Длительность <b>${fmt(rec.duration)}</b></span><span id="iStatus">${statusChip(rec)}</span></div>
+      </div>
+      <div class="actions">
+        <details class="menu"><summary class="btn">Скачать</summary><div class="pop">
+          <button data-act="md">Отчёт целиком (.md)</button>
+          <button data-act="txt">Только расшифровка (.txt)</button>
+          <button data-act="audio" ${rec.audio?"":"disabled"}>Аудиозапись</button>
+          <button data-act="print">Печать или PDF</button>
+          <button data-act="copy">Скопировать отчёт</button>
+        </div></details>
+        <details class="menu"><summary class="btn">Ещё</summary><div class="pop">
+          <button data-act="relabel">Заново определить, кто говорит</button>
+          <button data-act="swap">Поменять местами босса и кандидата</button>
+          <button data-act="teach">Уточнить голос босса по этой записи</button>
+          <button data-act="redo" ${rec.audio?"":"disabled"}>Расшифровать заново</button>
+          <button data-act="del" style="color:var(--bad)">Удалить собеседование</button>
+        </div></details>
+      </div>
+    </div>
+    <div class="saved" id="iSaved"></div>
+  </div>
+  ${rec.audio?`<div class="card player"><button class="play" id="pPlay" aria-label="Слушать">${ICON.play}</button><div class="ptime"><b id="pCur">00:00</b> / ${fmt(rec.duration)}</div>
+    <div class="tl" id="tl" title="Цветом показано, кто говорит. Нажмите, чтобы перейти"><div class="tl-bg" id="tlBg"></div><div class="tl-prog" id="tlProg"></div></div>
+    <div class="speed" id="speed">${[1,1.25,1.5,2].map(x=>`<button data-rate="${x}" class="${x===1?"on":""}">${String(x).replace(".",",")}×</button>`).join("")}</div><audio id="player" preload="metadata" hidden></audio></div>`:""}
+  <div id="iProc"></div>
+  <div class="card"><div class="subtabs" role="tablist">
+    <button data-tab="analysis">Анализ</button><button data-tab="qa">Вопросы и ответы</button><button data-tab="tr">Расшифровка<span class="cnt" id="unsureCnt" hidden></span></button>
+  </div><div id="iBody"></div></div>`;
+  if(rec.audio){const b=await getAudio(rec);const p=$("#player");if(b&&p){if(INT.url)URL.revokeObjectURL(INT.url);INT.url=URL.createObjectURL(b);p.src=INT.url;
+    p.ontimeupdate=onTime;p.onplay=p.onpause=()=>{const pp=$("#pPlay");if(pp)pp.innerHTML=p.paused?ICON.play:ICON.pause};p.onended=()=>{const pp=$("#pPlay");if(pp)pp.innerHTML=ICON.play}}}
+  $("#iCand").oninput=e=>{rec.candidate=e.target.value.trim();saveRecSoon(rec)};
+  $("#iCand").onchange=()=>renderIntBody();
+  $("#iPos").oninput=e=>{rec.position=e.target.value.trim();saveRecSoon(rec)};
+  renderTimeline();renderSaved();renderIntProc();renderIntBody();
+}
+function renderTimeline(){
+  const bg=$("#tlBg");if(!bg||!INT)return;const rec=INT.rec,d=rec.duration||1;
+  const col={boss:"var(--boss)",cand:"var(--cand)",other:"var(--other)","?":"var(--faint)"};
+  bg.innerHTML=rec.segs.map(s=>`<i style="left:${(s.t0/d*100).toFixed(3)}%;width:${Math.max(0.15,(s.t1-s.t0)/d*100).toFixed(3)}%;background:${col[s.spk]||col["?"]}"></i>`).join("");
+}
+function renderSaved(){
+  const el=$("#iSaved");if(!el||!INT)return;const rec=INT.rec;
+  const inFolder=rec.folderDir&&Folder.handle;
+  el.innerHTML=`<span><i></i>Сохранено в браузере${rec.audio?" — звук, текст и анализ":""}</span>
+    ${Folder.handle?(inFolder?`<span><i></i>Копия в папке «${esc(Folder.name())}/${esc(rec.folderDir)}»</span>`:Folder.state!=="granted"?`<span><i class="off"></i>Папка «${esc(Folder.name())}» ждёт разрешения</span><button class="btn sm" data-act="allowFolder">Разрешить</button>`:`<span><i class="off"></i>Копия в папку появится после расшифровки</span>`)
+      :Folder.supported?`<span><i class="off"></i>Копии в обычную папку не настроены</span><button class="btn sm ghost" data-act="pickFolder">Выбрать папку</button>`:""}`;
+}
+function renderIntProc(){
+  if(!INT)return;const rec=INT.rec,el=$("#iProc");if(!el)return;
+  const j=Jobs.map.get(rec.id);const st=$("#iStatus");if(st)st.innerHTML=statusChip(rec);
+  if(j&&!j.done){const p=j.total?Math.min(99,Math.round(j.doneSec/j.total*100)):0;const d=Engine.dlInfo();
+    el.innerHTML=`<div class="card pad stack"><div class="row"><span class="spin" style="color:var(--accent)"></span><b>${d?`Скачиваю модели распознавания: ${Math.round(d.a/1e6)} из ${Math.round(d.b/1e6)} МБ — это один раз`:`Расшифровываю: ${fmtLong(j.doneSec)} из ${fmtLong(j.total)} записи`}</b></div>
+      <div class="bar"><i style="width:${d?Math.round(d.a/d.b*100):p}%"></i></div><span class="lbl">Можно переходить по разделам программы — расшифровка продолжится. Не закрывайте вкладку браузера.</span></div>`;return}
+  if(rec.status==="recording"&&!(Recorder.A&&Recorder.A.rec.id===rec.id)){
+    el.innerHTML=note("warn",`<p><b>Запись была прервана</b> (закрыли вкладку или браузер). Сохранилось ${fmtLong(rec.duration)}${rec.audio?" звука":""} и ${pl(rec.segs.length,"кусок","куска","кусков")} текста.</p>${rec.audio?'<p><button class="btn sm primary" data-act="redo2">Расшифровать сохранённый звук</button></p>':""}`);return}
+  if(rec.status==="error"){el.innerHTML=note("bad",`<p><b>Расшифровка не удалась.</b> ${esc(rec.procError||"")}</p>${rec.audio?'<p><button class="btn sm primary" data-act="redo2">Попробовать снова</button></p>':""}`);return}
+  const i=rec.spkInfo;
+  if(i&&i.single&&rec.segs.length>4)el.innerHTML=note("info","<p>Похоже, в записи говорит один человек. Если это не так, поправьте подписи во вкладке «Расшифровка».</p>");
+  else if(i&&i.bossMissing)el.innerHTML=note("warn",`<p>Голос «${esc(S.bossName)}» не очень похож ни на одного из говорящих (другой микрофон или другой человек). Проверьте подписи. Если всё верно — «Ещё → Уточнить голос босса».</p>`);
+  else if(i&&i.method==="cluster"&&rec.segs.length)el.innerHTML=note("info",`<p>Голос босса не настроен, поэтому «${esc(S.bossName)}» — тот, кто заговорил первым. Перепутано? «Ещё → Поменять местами». <a href="#settings">Настроить голос</a></p>`);
+  else el.innerHTML="";
+}
+function renderIntBody(){
+  if(!INT)return;const rec=INT.rec,body=$("#iBody");if(!body)return;
+  $$(".subtabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===INT.tab));
+  const un=rec.segs.filter(isUnsure).length;const uc=$("#unsureCnt");if(uc){uc.hidden=!un;uc.textContent=un}
+  const processing=Jobs.map.has(rec.id);
+  if(INT.tab==="tr"){
+    body.innerHTML=`<div class="pad stack" style="padding-bottom:6px">
+      <div class="row"><input type="search" id="trq" placeholder="Поиск по тексту" value="${esc(INT.q)}" style="flex:1 1 220px">
+      <button class="btn ${INT.edit?"primary":""}" id="trEdit">${INT.edit?"Готово":"Исправить текст и подписи"}</button><button class="btn ghost" id="trCopy">Копировать</button></div>
+      <span class="lbl">${INT.edit?"Для каждой фразы выберите, кто говорит, и исправьте текст прямо в поле. Всё сохраняется сразу.":"Нажмите на время — включится это место записи. Нажмите на имя — сменится говорящий у всей реплики."}</span>
+    </div><div class="transcript" id="trBox">${rec.segs.length?transcriptHTML(rec,{q:INT.q,edit:INT.edit}):`<div class="empty">${processing?"Текст появится по мере расшифровки.":"Текста нет."}</div>`}</div>`;
+    $("#trq").oninput=debounce(()=>{INT.q=$("#trq").value;$("#trBox").innerHTML=transcriptHTML(rec,{q:INT.q,edit:INT.edit});const f=$("#trBox mark");f&&f.scrollIntoView({block:"center"})},250);
+    $("#trEdit").onclick=()=>{INT.edit=!INT.edit;renderIntBody();if(!INT.edit){renderTimeline()}};
+    $("#trCopy").onclick=async e=>flash(e.currentTarget,await copyText(transcriptText(rec))?"Скопировано":"Не удалось");
+    return;
+  }
+  if(processing&&!rec.segs.length){body.innerHTML='<div class="empty">Анализ появится, когда закончится расшифровка.</div>';return}
+  if(!rec.segs.length){body.innerHTML='<div class="empty">В записи нет текста — анализировать нечего.</div>';return}
+  if(INT.tab==="qa"){body.innerHTML=qaHTML(rec);return}
+  body.innerHTML=analysisHTML(rec);
+  const r=$("#aiReq");if(r)r.oninput=()=>{rec.req=r.value;saveRecSoon(rec)};
+}
+
+/* вкладка «Анализ» */
+const ts=t=>{const s=parseTs(t);return s==null?"":`<button class="tsb" data-seek="${s}">${esc(fmt(s))}</button>`};
+const arr=x=>Array.isArray(x)?x:x?[x]:[];
+function ring(score,cls){const s=clamp(+score||0,0,100),C=2*Math.PI*54;return`<div class="ring"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="54" fill="none" stroke="var(--panel2)" stroke-width="10"/><circle cx="60" cy="60" r="54" fill="none" stroke="var(--${cls})" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(C*s/100).toFixed(1)} ${C.toFixed(1)}"/></svg><div class="v"><b>${Math.round(s)}</b><small>из 100</small></div></div>`}
+function quickHTML(rec,m){
+  const pc=Math.round(m.per.cand.sec/m.tot*100),pb=Math.round(m.per.boss.sec/m.tot*100),po=Math.max(0,100-pb-pc);
+  return`<div class="tiles">
+    <div class="tile"><small>Конкретика в ответах</small><b>${m.concrete==null?"—":m.concrete+" %"}</b><em>ответов с цифрами или делами</em></div>
+    <div class="tile"><small>Сильных / слабых ответов</small><b>${m.strong} / ${m.weak}</b><em>из ${pl(m.qa.length,"ответа","ответов","ответов")}</em></div>
+    <div class="tile"><small>Кандидат говорил</small><b>${pc} %</b><em>${fmtLong(m.per.cand.sec)}</em></div>
+    <div class="tile"><small>Вопросы кандидата</small><b>${m.candQ.length}</b><em>о работе и компании</em></div></div>
+  <section class="sec"><h3>Кто сколько говорил</h3>
+    <div class="meter"><i style="width:${pb}%;background:var(--boss)"></i><i style="width:${pc}%;background:var(--cand)"></i>${po>0?`<i style="width:${po}%;background:var(--other)"></i>`:""}</div>
+    <div class="legend"><span><i style="background:var(--boss)"></i>${esc(S.bossName)} — ${pb} %</span><span><i style="background:var(--cand)"></i>${esc(recTitle(rec))} — ${pc} %</span>${po>1?`<span><i style="background:var(--other)"></i>Другие — ${po} %</span>`:""}</div></section>
+  <section class="sec"><h3>Что бросается в глаза<span>посчитано программой</span></h3>
+    ${m.sig.length?`<ul class="pts">${m.sig.map(([k,t])=>`<li style="--c:var(--${k==="good"?"good":k==="warn"?"warn":"info"})"><span>${esc(t)}</span></li>`).join("")}</ul>`:'<p class="muted">Явных сигналов нет.</p>'}</section>`;
+}
+function aiHTML(rec,d){
+  const v=d.verdict||{},c=d.candidate||{},cls=decClass(v.decision);
+  const sevc=s=>/высок/i.test(s)?"h":/низк/i.test(s)?"l":"m";
+  const sec=(title,inner,cnt)=>inner?`<section class="sec"><h3>${title}${cnt!=null?`<span>${cnt}</span>`:""}</h3>${inner}</section>`:"";
+  const cols=(a,b)=>a&&b?`<div class="cols">${a}${b}</div>`:(a||b||"");
+  let h=`<div class="verdict v-${cls}">${ring(v.score??v.confidence??0,cls)}<div><div class="dec">${esc(v.decision||"—")}</div>${v.one_line?`<div class="one">${esc(v.one_line)}</div>`:""}<div class="sum">${esc(v.summary||"")}</div>
+    <div class="row" style="margin-top:10px"><span class="chip">уверенность ${esc(v.confidence??"—")} %</span><span class="chip">${esc(rec.ai.model||"Claude")}</span><span class="chip">${dateShort(rec.ai.created)}</span></div></div></div>`;
+  const df=arr(v.deciding_factors);
+  h+=cols(df.length?sec("Главное для решения",`<ul class="pts acc">${df.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"",v.hire_if?sec("Брать, если",`<div class="prose"><p>${esc(v.hire_if)}</p></div>`):"");
+  const rf=arr(d.red_flags);
+  if(rf.length)h+=sec("Стоп-сигналы",`<ul class="pts bad">${rf.map(x=>`<li><b>${esc(x.point||x)}</b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}</li>`).join("")}</ul>`,rf.length);
+  const fl=[["Опыт",c.experience],["Сейчас",c.current_situation],["Деньги",c.salary],["Выход на работу",c.availability]].filter(x=>x[1]);
+  h+=sec("Кандидат",(fl.length?`<dl class="facts">${fl.map(([k,x])=>`<dt>${k}</dt><dd>${esc(x)}</dd>`).join("")}</dl>`:"")+(arr(c.facts).length?`<ul class="pts info">${arr(c.facts).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""));
+  const comp=arr(d.competencies);
+  h+=sec("Компетенции",comp.length?`<div class="comp">${comp.map(x=>{const s=clamp(Math.round(+x.score||0),0,5);return`<div class="comp-row"><b>${esc(x.name)}</b><div class="dots s${s}">${[1,2,3,4,5].map(i=>`<i class="${i<=s?"on":""}"></i>`).join("")}</div><div style="display:grid;gap:3px"><span>${esc(x.comment||"")}</span>${x.evidence?`<span class="quote">«${esc(x.evidence)}»${ts(x.t)}</span>`:""}</div></div>`}).join("")}</div>`:"");
+  const st=arr(d.strengths),rk=arr(d.risks);
+  h+=cols(st.length?sec("Сильные стороны",`<ul class="pts good">${st.map(x=>`<li><b>${esc(x.point)}</b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}</li>`).join("")}</ul>`,st.length):"",
+    rk.length?sec("Риски",`<ul class="pts bad">${rk.map(x=>`<li><b>${esc(x.point)}<span class="sev ${sevc(x.severity)}">${esc(x.severity||"")}</span></b>${x.quote?`<span class="quote">«${esc(x.quote)}»${ts(x.t)}</span>`:""}${x.how_to_check?`<span class="lbl">Как проверить: ${esc(x.how_to_check)}</span>`:""}</li>`).join("")}</ul>`,rk.length):"");
+  const inc=arr(d.inconsistencies),ev=arr(d.evasions);
+  h+=cols(inc.length?sec("Противоречия",`<ul class="pts warn">${inc.map(x=>`<li><b>${esc(x.point)}</b>${arr(x.quotes).map(q=>`<span class="quote">«${esc(q.text||q)}»${ts(q.t)}</span>`).join("")}</li>`).join("")}</ul>`,inc.length):"",
+    ev.length?sec("Ушёл от ответа",`<ul class="pts warn">${ev.map(x=>`<li><b>${esc(x.question)}</b><span>${esc(x.what_happened||"")} ${ts(x.t)}</span></li>`).join("")}</ul>`,ev.length):"");
+  const mo=d.motivation||{},co=d.communication||{};
+  h+=cols((mo.type||mo.comment||arr(mo.drivers).filter(Boolean).length)?sec("Мотивация",`<div class="prose">${mo.type?`<p><b>${esc(mo.type)}</b></p>`:""}${arr(mo.drivers).filter(Boolean).length?`<div class="chips">${arr(mo.drivers).filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}</div>`:""}${mo.comment?`<p>${esc(mo.comment)}</p>`:""}</div>`):"",
+    (co.summary||arr(co.observations).filter(Boolean).length)?sec("Как общается",`<div class="prose">${co.summary?`<p>${esc(co.summary)}</p>`:""}${arr(co.observations).filter(Boolean).length?`<ul class="pts">${arr(co.observations).filter(Boolean).map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`:""}</div>`):"");
+  if(d.culture_fit)h+=sec("Подходит ли команде",`<div class="prose"><p>${esc(d.culture_fit)}</p></div>`);
+  const fq=arr(d.followups);
+  if(fq.length)h+=sec("Вопросы для второй встречи",`<ol class="fq">${fq.map(x=>`<li><span>${esc(x.question||x)}${x.why?`<small>${esc(x.why)}</small>`:""}</span></li>`).join("")}</ol><div><button class="btn sm" data-act="copyq">Скопировать вопросы</button></div>`,fq.length);
+  const nc=arr(d.not_covered).filter(Boolean),rc=arr(d.reference_checks).filter(Boolean);
+  h+=cols(nc.length?sec("Не обсудили",`<ul class="pts">${nc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"",rc.length?sec("Спросить у прошлых работодателей",`<ul class="pts">${rc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul>`):"");
+  const fb=arr(d.interviewer_feedback);
+  if(fb.length)h+=sec("Обратная связь интервьюеру",`<ul class="pts info">${fb.map(x=>`<li><span>${esc(x.point||x)} ${ts(x.t)}</span></li>`).join("")}</ul>`);
+  if(d.transcript_issues)h+=sec("Замечания по расшифровке",`<p class="muted">${esc(d.transcript_issues)}</p>`);
+  return h;
+}
+function aiActionHTML(rec,has){
+  const A=S.ai,run=AIRUN.has(rec.id);
+  const req=`<label class="field"><span>Что важно в кандидате — чем подробнее, тем точнее разбор</span><textarea id="aiReq" rows="3" placeholder="Например: опыт продаж B2B от 3 лет, знание 1С, готовность к командировкам, честность">${esc(rec.req||"")}</textarea></label>`;
+  if(run)return`<div class="ai-cta"><div class="row"><span class="spin" style="color:var(--accent)"></span><b>Claude разбирает собеседование…</b></div><span class="lbl">Обычно 1–2 минуты. Можно уйти с этой страницы — результат сохранится.</span></div>`;
+  if(A.provider==="copy")return`<div class="ai-cta">
+    ${has?'<b class="h2">Обновить глубокий разбор</b>':`<div class="stack" style="gap:6px"><b class="h2">Глубокий разбор от Claude</b><span class="muted">Claude прочитает расшифровку как опытный HR: оценит каждый ответ, найдёт противоречия и уходы от вопросов, даст вердикт и вопросы для второй встречи. Ключ API не нужен — используется ваш claude.ai.</span></div>`}
+    ${req}
+    <div class="stepsAI">
+      <div><div class="stack" style="gap:8px"><b>Скопируйте запрос</b><span class="lbl">В нём инструкция для разбора и вся расшифровка.</span><div><button class="btn primary" data-act="copyPrompt">Скопировать запрос</button></div></div></div>
+      <div><div class="stack" style="gap:8px"><b>Отправьте его в новом чате Claude</b><span class="lbl">Откройте <a href="https://claude.ai/new" target="_blank" rel="noopener">claude.ai</a>, вставьте запрос и отправьте. Выберите самую сильную модель.</span></div></div>
+      <div><div class="stack" style="gap:8px"><b>Скопируйте ответ и вставьте сюда</b><textarea id="aiPaste" rows="3" placeholder="Вставьте ответ Claude целиком — он начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
+    </div></div>`;
+  return`<div class="ai-cta">${has?"":`<div class="stack" style="gap:6px"><b class="h2">Глубокий разбор от Claude</b><span class="muted">Оценка каждого ответа, противоречия, риски, вердикт и вопросы для второй встречи.</span></div>`}${req}
+    <div class="row"><button class="btn primary big" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button><span class="lbl">${esc(A.provider==="anthropic"?(A.model||"claude-opus-5-5"):(A.model||""))}</span></div>
+    ${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}</div>`;
+}
+function analysisHTML(rec){
+  const m=metrics(rec),d=rec.ai&&rec.ai.data;const stale=d&&rec.ai.hash!==segHash(rec);
+  const how=`<div class="how"><span><b>Цифры и сигналы</b> — программа считает сама, сразу после записи.</span><span><b>Глубокий разбор</b> — делает Claude по расшифровке${d?"":", когда вы его запустите"}.</span></div>`;
+  if(d)return how+(stale?`<div style="padding:14px 22px 0">${note("warn","<p>Расшифровку изменили после разбора. Обновите разбор внизу страницы, чтобы он учёл правки.</p>")}</div>`:"")+aiHTML(rec,d)+`<div style="border-top:1px solid var(--line)"><div class="card-h"><h2>Цифры по речи</h2></div>${quickHTML(rec,m)}</div><div style="border-top:1px solid var(--line)">${aiActionHTML(rec,true)}</div>`;
+  return how+quickHTML(rec,m)+`<div style="border-top:1px solid var(--line)">${aiActionHTML(rec,false)}</div>`;
+}
+/* вкладка «Вопросы и ответы» */
+function qaHTML(rec){
+  const m=metrics(rec),d=rec.ai&&rec.ai.data,ai=arr(d&&d.answers);
+  const near=t=>{let b=null,bd=25;ai.forEach(a=>{const s=parseTs(a.t);if(s==null)return;const dd=Math.abs(s-t);if(dd<bd){bd=dd;b=a}});return b};
+  const extra=`<section class="sec"><h3>Речь кандидата</h3><div class="kv">
+    <div><b>${m.fill.toFixed(1)}</b><small>слов-паразитов на 100 слов</small></div><div><b>${m.hedge.toFixed(1)}</b><small>неуверенных слов на 100</small></div><div><b>${m.act}</b><small>глаголов результата («сделал», «увеличил»)</small></div>
+    <div><b>${m.iC} / ${m.weC}</b><small>«я» / «мы»</small></div><div><b>${m.lat?m.lat.toFixed(1)+" с":"—"}</b><small>пауза перед ответом</small></div><div><b>${m.paceC??"—"}</b><small>слов в минуту</small></div></div></section>
+  ${(m.money.length||m.exper.length)?`<section class="sec"><h3>Цифры из ответов</h3><dl class="facts">${m.money.length?`<dt>Деньги</dt><dd>${m.money.map(esc).join(" · ")}</dd>`:""}${m.exper.length?`<dt>Сроки опыта</dt><dd>${m.exper.map(esc).join(" · ")}</dd>`:""}</dl></section>`:""}
+  ${m.negs.length?`<section class="sec"><h3>Негатив о прошлом опыте</h3><ul class="pts warn">${m.negs.slice(0,8).map(x=>`<li><span>${esc(x.s)} ${ts(x.t)}</span></li>`).join("")}</ul></section>`:""}
+  ${m.candQ.length?`<section class="sec"><h3>Вопросы кандидата</h3><ul class="pts info">${m.candQ.slice(0,10).map(x=>`<li><span>${esc(x.s)} ${ts(x.t)}</span></li>`).join("")}</ul></section>`:""}
+  ${m.topics.length?`<section class="sec"><h3>Частые темы</h3><div class="chips">${m.topics.map(x=>`<span>${esc(x.w)}<em>${x.n}</em></span>`).join("")}</div></section>`:""}`;
+  if(!m.qa.length)return`<div class="empty"><b>Пар «вопрос — ответ» не найдено</b><span>Программа ищет вопрос руководителя и следующий за ним ответ кандидата. Проверьте подписи говорящих во вкладке «Расшифровка».</span></div>`+extra;
+  return`<div class="how"><span><b>Оценка программы</b> — по конкретике: цифры, личные действия, длина, неуверенность.</span>${d?"<span><b>Оценка Claude</b> — по смыслу ответа.</span>":"<span>Сделайте глубокий разбор — добавится оценка Claude по смыслу.</span>"}</div>
+  <div class="qa">${m.qa.map((x,i)=>{const a=near(x.qt);const q=x.qual;
+    return`<div class="qa-card"><div class="qa-q"><b>${i+1}. ${esc(x.q)}</b>${ts(x.qt)}</div>
+      <div class="qa-a ${x.a.length>420?"clip":""}">${esc(x.a)}</div>
+      <div class="qa-f"><span class="rate ${q.rating}">${RATE_TXT[q.rating]}</span>${[...q.plus.map(p=>"+ "+p),...q.minus.map(p=>"− "+p)].map(esc).join(" · ")}<span class="faint">· ${q.words} сл.${x.lat>2?` · пауза ${x.lat.toFixed(1)} с`:""}</span>${ts(x.at)}</div>
+      ${a?`<div class="aiq"><span class="rate ${rateFromAI(a.rating)}">Claude: ${esc(a.rating||"")}</span><span>${esc(a.why||"")}</span></div>`:""}</div>`}).join("")}</div>`+extra;
+}
+
+/* действия на странице собеседования */
+$("#v-int").addEventListener("click",async e=>{
+  const sk=e.target.closest("[data-seek]");if(sk){seek(+sk.dataset.seek);return}
+  const tb=e.target.closest("[data-tab]");if(tb){INT.tab=tb.dataset.tab;INT.edit=false;renderIntBody();return}
+  const rb=e.target.closest("[data-rate]");if(rb){const p=$("#player");if(p)p.playbackRate=+rb.dataset.rate;$$("#speed button").forEach(b=>b.classList.toggle("on",b===rb));return}
+  if(e.target.closest("#pPlay")){const p=$("#player");if(p){if(p.paused)p.play().catch(()=>{});else p.pause()}return}
+  const tl=e.target.closest("#tl");if(tl&&INT){const r=tl.getBoundingClientRect();seek((e.clientX-r.left)/r.width*(INT.rec.duration||0)+0.3);return}
+  const b=e.target.closest("[data-act]");if(!b||!INT)return;const rec=INT.rec,act=b.dataset.act;
+  const menu=b.closest("details");if(menu&&act!=="del"&&act!=="redo")menu.open=false;
+  if(act==="md")download(new Blob([reportMD(rec)],{type:"text/markdown;charset=utf-8"}),fileBase(rec)+".md");
+  else if(act==="txt")download(new Blob([plainTranscript(rec)],{type:"text/plain;charset=utf-8"}),fileBase(rec)+".txt");
+  else if(act==="audio"){const a=await getAudio(rec);if(a)download(a,fileBase(rec)+"."+audioExt(a.type));else toast("Звук не найден","bad")}
+  else if(act==="print")printReport(rec);
+  else if(act==="copy")flash(b,await copyText(reportMD(rec))?"Скопировано":"Не удалось");
+  else if(act==="relabel"){labelSpeakers(rec);await saveRec(rec);renderTimeline();renderIntProc();renderIntBody();toast("Говорящие определены заново")}
+  else if(act==="swap"){rec.segs.forEach(s=>{if(s.spk==="boss")s.spk="cand";else if(s.spk==="cand")s.spk="boss"});await saveRec(rec);renderTimeline();renderIntBody();toast("Поменял местами")}
+  else if(act==="teach"){const embs=rec.segs.filter(s=>s.spk==="boss"&&s.emb&&(s.manual||s.conf>0.05)&&s.t1-s.t0>1.5).map(s=>s.emb);
+    if(embs.length<3){toast("Мало уверенных реплик босса в этой записи. Сначала проверьте подписи в расшифровке.","warn");return}
+    try{PROFILE=mergeProfile(PROFILE,buildProfile(embs),"Собеседование: "+recTitle(rec));await saveProfile();toast("Голос босса уточнён по этой записи","good")}catch(err){toast(err.message,"bad")}}
+  else if(act==="redo"){if(Jobs.map.has(rec.id)){toast("Расшифровка уже идёт");return}armed(b,()=>{menu&&(menu.open=false);reprocess(rec).then(()=>renderInt(rec.id))},"Ещё раз — текущий текст заменится")}
+  else if(act==="redo2"){if(!Jobs.map.has(rec.id))reprocess(rec).then(()=>renderInt(rec.id))}
+  else if(act==="del")armed(b,async()=>{await deleteRec(rec.id);INT=null;toast("Собеседование удалено");location.hash="#home"},"Удалить навсегда?");
+  else if(act==="runAI")runAI(rec);
+  else if(act==="copyPrompt"){const{system,user}=buildPrompt(rec);flash(b,await copyText(system+"\n\n=====\n\n"+user)?"Скопировано — вставьте в claude.ai":"Не удалось скопировать")}
+  else if(act==="applyPaste"){try{const data=parseAI($("#aiPaste").value);rec.ai={data,created:Date.now(),model:"claude.ai",hash:segHash(rec)};rec.aiError=null;await saveRec(rec);renderIntBody();renderIntProc();window.scrollTo({top:$("#iBody").getBoundingClientRect().top+scrollY-140,behavior:"smooth"});toast("Разбор сохранён","good")}catch(err){toast(err.message,"bad",8000)}}
+  else if(act==="copyq"){const q=arr(rec.ai&&rec.ai.data&&rec.ai.data.followups).map((x,i)=>`${i+1}. ${x.question||x}`).join("\n");flash(b,await copyText(q)?"Скопировано":"Не удалось")}
+  else if(act==="pickFolder")pickFolder();
+  else if(act==="allowFolder"){await Folder.allow();renderSaved()}
+});
+$("#v-int").addEventListener("change",async e=>{
+  if(!INT)return;const rec=INT.rec;
+  const t=e.target.closest("select[data-turn]");
+  if(t){const turn=turnsOf(rec)[+t.dataset.turn];if(turn){turn.idx.forEach(i=>{rec.segs[i].spk=t.value;rec.segs[i].manual=true});await saveRec(rec);renderTimeline();renderIntBody();toast(`Реплика теперь у «${spkName(rec,t.value)}»`,"",2200)}return}
+  const sg=e.target.closest("select[data-seg]");
+  if(sg){const s=rec.segs[+sg.dataset.seg];if(s){s.spk=sg.value;s.manual=true;saveRecSoon(rec,300)}}
+});
+$("#v-int").addEventListener("focusout",e=>{
+  const ed=e.target.closest("[data-edit]");if(!ed||!INT)return;const s=INT.rec.segs[+ed.dataset.edit];if(!s)return;
+  const v=ed.textContent.replace(/\s+/g," ").trim();if(v&&v!==s.text){s.text=v;s.edited=true;saveRecSoon(INT.rec,300)}
+});
+function seek(t){const p=$("#player");if(!p){toast("Звук этой записи не сохранён","warn");return}p.currentTime=Math.max(0,t-0.3);p.play().catch(()=>{})}
+let lastNow=-1;
+function onTime(){
+  if(!INT)return;const p=$("#player"),t=p.currentTime,segs=INT.rec.segs;
+  const pc=$("#pCur");if(pc)pc.textContent=fmt(t);const pr=$("#tlProg");if(pr)pr.style.left=clamp(t/(INT.rec.duration||1)*100,0,100)+"%";
+  let k=-1;for(let i=0;i<segs.length;i++){if(segs[i].t0<=t+0.05&&t<segs[i].t1+0.3){k=i;break}}
+  if(k===lastNow)return;lastNow=k;$$("#iBody .seg.now").forEach(x=>x.classList.remove("now"));
+  if(k>=0){const el=$(`#iBody .seg[data-s="${k}"]`);if(el)el.classList.add("now")}
+}
+const fileBase=rec=>"sobesedovanie-"+(translit(rec.candidate)||"kandidat")+"-"+new Date(rec.created).toISOString().slice(0,10);
+const audioExt=t=>/mp4|m4a|aac/.test(t)?"m4a":/mpeg|mp3/.test(t)?"mp3":/ogg/.test(t)?"ogg":/wav/.test(t)?"wav":"webm";
+
+/* =========================================================
+   Экспорт
+   ========================================================= */
+function reportMD(rec){
+  const m=metrics(rec),d=rec.ai&&rec.ai.data,L=[];
+  L.push(`# Собеседование: ${recTitle(rec)}`);L.push(`${rec.position?"Вакансия: "+rec.position+"  \n":""}Дата: ${dateStr(rec.created)}  \nДлительность: ${fmtLong(rec.duration)}`);
+  if(d){const v=d.verdict||{},c=d.candidate||{};
+    L.push(`\n## Итог: ${v.decision||"—"} — ${v.score??"—"}/100 (уверенность ${v.confidence??"—"} %)`);if(v.one_line)L.push(`**${v.one_line}**\n`);L.push(v.summary||"");
+    if(arr(v.deciding_factors).length){L.push("\n**Главное для решения:**");arr(v.deciding_factors).forEach(x=>L.push(`- ${x}`))}
+    if(v.hire_if)L.push(`\n**Брать, если:** ${v.hire_if}`);
+    if(arr(d.red_flags).length){L.push("\n## Стоп-сигналы");arr(d.red_flags).forEach(x=>L.push(`- **${x.point||x}**${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}`))}
+    const fl=[["Опыт",c.experience],["Сейчас",c.current_situation],["Деньги",c.salary],["Выход на работу",c.availability]].filter(x=>x[1]);
+    if(fl.length||arr(c.facts).length){L.push("\n## Кандидат");fl.forEach(([k,x])=>L.push(`- **${k}:** ${x}`));arr(c.facts).forEach(x=>L.push(`- ${x}`))}
+    if(arr(d.answers).length){L.push("\n## Оценка ответов");arr(d.answers).forEach(x=>L.push(`- [${x.t||""}] **${x.question}** — ${x.rating||""}. ${x.why||""}`))}
+    if(arr(d.competencies).length){L.push("\n## Компетенции");arr(d.competencies).forEach(x=>L.push(`- **${x.name}** — ${x.score}/5. ${x.comment||""}${x.evidence?` _«${x.evidence}» [${x.t||""}]_`:""}`))}
+    if(arr(d.strengths).length){L.push("\n## Сильные стороны");arr(d.strengths).forEach(x=>L.push(`- ${x.point}${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}`))}
+    if(arr(d.risks).length){L.push("\n## Риски");arr(d.risks).forEach(x=>L.push(`- **${x.point}** (${x.severity||""})${x.quote?` _«${x.quote}» [${x.t||""}]_`:""}${x.how_to_check?` — проверить: ${x.how_to_check}`:""}`))}
+    if(arr(d.inconsistencies).length){L.push("\n## Противоречия");arr(d.inconsistencies).forEach(x=>L.push(`- ${x.point}`+arr(x.quotes).map(q=>` _«${q.text||q}» [${q.t||""}]_`).join("")))}
+    if(arr(d.evasions).length){L.push("\n## Ушёл от ответа");arr(d.evasions).forEach(x=>L.push(`- **${x.question}** — ${x.what_happened||""} [${x.t||""}]`))}
+    if(d.motivation){L.push("\n## Мотивация");if(d.motivation.type)L.push(d.motivation.type);if(arr(d.motivation.drivers).filter(Boolean).length)L.push("Движущие силы: "+arr(d.motivation.drivers).filter(Boolean).join(", "));if(d.motivation.comment)L.push(d.motivation.comment)}
+    if(d.communication){L.push("\n## Как общается");if(d.communication.summary)L.push(d.communication.summary);arr(d.communication.observations).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
+    if(d.culture_fit)L.push(`\n## Подходит ли команде\n${d.culture_fit}`);
+    if(arr(d.followups).length){L.push("\n## Вопросы для второй встречи");arr(d.followups).forEach((x,i)=>L.push(`${i+1}. ${x.question||x}${x.why?` — ${x.why}`:""}`))}
+    if(arr(d.not_covered).filter(Boolean).length){L.push("\n## Не обсудили");arr(d.not_covered).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
+    if(arr(d.reference_checks).filter(Boolean).length){L.push("\n## Спросить у прошлых работодателей");arr(d.reference_checks).filter(Boolean).forEach(x=>L.push(`- ${x}`))}
+    if(arr(d.interviewer_feedback).length){L.push("\n## Обратная связь интервьюеру");arr(d.interviewer_feedback).forEach(x=>L.push(`- ${x.point||x}${x.t?` [${x.t}]`:""}`))}
+  }
+  L.push("\n## Цифры по речи");
+  L.push(`- Доля речи: ${S.bossName} ${Math.round(m.per.boss.sec/m.tot*100)} %, кандидат ${Math.round(m.per.cand.sec/m.tot*100)} %`);
+  L.push(`- Вопросов задано: ${m.bossQ}; ответов: ${m.qa.length}, из них сильных ${m.strong}, слабых ${m.weak}; конкретика: ${m.concrete??"—"} %`);
+  L.push(`- Средний ответ: ${m.avgAns} слов; вопросов от кандидата: ${m.candQ.length}`);
+  L.push(`- Слов-паразитов: ${m.fill.toFixed(1)} на 100 слов; неуверенных слов: ${m.hedge.toFixed(1)} на 100; «я»/«мы»: ${m.iC}/${m.weC}`);
+  m.sig.forEach(([k,t])=>L.push(`- ${t}`));
+  L.push("\n## Расшифровка\n");turnsOf(rec).forEach(t=>L.push(`**[${fmt(t.t0)}] ${spkName(rec,t.spk)}:** ${t.text}\n`));
+  L.push("\n---\nGrass Voice by AZBYYKA");
+  return L.join("\n");
+}
+function printReport(rec){
+  const d=rec.ai&&rec.ai.data,m=metrics(rec);
+  $("#print").innerHTML=`<h1 style="font:800 22px var(--body)">Собеседование: ${esc(recTitle(rec))}</h1><p>${esc(rec.position||"")} · ${dateStr(rec.created)} · ${fmtLong(rec.duration)}</p>
+    ${d?`<div class="card">${aiHTML(rec,d)}</div>`:""}<div class="card">${quickHTML(rec,m)}</div><div class="card">${qaHTML(rec)}</div><div class="card"><div class="transcript">${transcriptHTML(rec,{live:true})}</div></div><p>Grass Voice by AZBYYKA</p>`;
+  setTimeout(()=>window.print(),60);
+}
+
+/* =========================================================
+   Настройки
+   ========================================================= */
+let enrollBusy=false,enrollMsg="";
+async function renderSettings(){
+  const v=$("#v-settings"),P=PROFILE,A=S.ai,st=await storageInfo();
+  const gpuOk="gpu" in navigator;const list=await allRecs();
+  v.innerHTML=`<div class="page-h"><h1>Настройки</h1></div>
+  <div class="card set" id="sVoice">
+    <h2>Голос босса</h2>
+    <p>По образцу голоса программа понимает, где в записи говорит босс, а где кандидат. Подойдёт любая запись, где он говорит 1–5 минут: голосовое сообщение, запись созвона. Если в файле есть и другие голоса, программа возьмёт тот, что звучит чаще всего.</p>
+    <label class="field" style="max-width:360px"><span>Как подписывать босса в расшифровке</span><input type="text" id="sBossName" value="${esc(S.bossName)}" placeholder="Например: Александр"></label>
+    <div class="profile-card"><div class="vp ${P?"":"off"}">${ICON.voice}</div><div>
+      ${P?`<b>Голос настроен</b><div class="lbl">${fmtLong(P.secs)} речи в образце · ${pl((P.sources||[]).length,"источник","источника","источников")}: ${esc((P.sources||[]).slice(-3).join(", "))}${P.dropped?` · отброшено ${pl(P.dropped,"фрагмент","фрагмента","фрагментов")} с другими голосами`:""}</div>`
+        :`<b>Голос не настроен</b><div class="lbl">Без образца программа разделит двух людей, но может перепутать, кто из них босс.</div>`}
+    </div></div>
+    <div class="row">
+      <label class="btn ${P?"":"primary"}"><input type="file" id="sVoiceFile" accept="audio/*,video/*,.m4a,.mp3,.wav,.ogg,.opus,.webm,.mp4,.aac" multiple hidden>${P?"Добавить ещё образец":"Загрузить запись голоса"}</label>
+      <button class="btn" id="sVoiceMic">Записать с микрофона (40 с)</button>
+      ${P?'<button class="btn danger" id="sVoiceReset">Сбросить голос</button>':""}
+    </div>
+    <div id="sVoiceStatus">${enrollBusy?`<div class="row"><span class="spin" style="color:var(--accent)"></span><span>${esc(enrollMsg)}</span></div>`:""}</div>
+  </div>
+
+  <div class="card set" id="sStore">
+    <h2>Где хранятся записи</h2>
+    <p>Каждое собеседование сохраняется автоматически, прямо во время записи: звук, расшифровка и анализ. Хранится в памяти этого браузера на этом компьютере — в интернет ничего не уходит. ${st.quota?`Сейчас занято ${Math.round(st.used/1e6)} МБ из ${Math.round(st.quota/1e9)} ГБ, собеседований: ${list.length}.`:""}</p>
+    ${!DB.ok?note("bad","<p><b>Сохранение недоступно</b> — вероятно, открыт режим «Инкогнито».</p>"):""}
+    <div class="profile-card"><div class="vp ${Folder.handle?"":"off"}"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2Z"/></svg></div><div>
+      ${Folder.handle?`<b>Копии в папке «${esc(Folder.name())}»</b><div class="lbl">${Folder.state==="granted"?"Для каждого собеседования — своя папка: Запись, Отчёт.md и Расшифровка.txt. Обновляются сами.":"Браузер просит заново разрешить доступ к папке — так он защищает ваши файлы."}</div>`
+        :`<b>Копии в обычную папку</b><div class="lbl">${Folder.supported?"Выберите папку на компьютере, и программа будет класть туда звук, отчёт и расшифровку каждого собеседования. Так записи не потеряются, даже если очистить браузер.":"Этот браузер не умеет сохранять в папку. В Chrome или Edge это работает; здесь пользуйтесь кнопкой «Скачать» в собеседовании и резервной копией."}</div>`}
+    </div></div>
+    <div class="row">
+      ${Folder.supported?(Folder.handle?(Folder.state!=="granted"?'<button class="btn primary" id="sFAllow">Разрешить доступ</button>':'<button class="btn" id="sFSync">Обновить копии сейчас</button>')+'<button class="btn" id="sFPick">Сменить папку</button><button class="btn ghost danger" id="sFForget">Не сохранять в папку</button>':'<button class="btn primary" id="sFPick">Выбрать папку</button>'):""}
+    </div>
+    <div class="row"><button class="btn" id="sBackup">Скачать резервную копию</button><label class="check"><input type="checkbox" id="sBackupAudio"> вместе со звуком</label><label class="btn ghost"><input type="file" id="sRestore" accept=".json,application/json" hidden>Восстановить из копии</label></div>
+  </div>
+
+  <div class="card set">
+    <h2>Распознавание речи</h2>
+    <p>Речь распознаётся прямо в браузере. Звук никуда не отправляется. Модели скачиваются один раз и потом берутся из памяти браузера.${Engine.asrReady?` Сейчас работает: <b>${MODEL_NAME(Engine.model)}</b>, ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}${window.crossOriginIsolated?", многопоточно":""}.`:""}</p>
+    <div class="opts" style="grid-template-columns:repeat(4,minmax(0,1fr))">${Object.entries(MODELS).map(([k,m])=>{const dis=m.gpuOnly&&!gpuOk;return`<label class="opt ${dis?"dis":""}"><input type="radio" name="model" value="${k}" ${S.model===k?"checked":""} ${dis?"disabled":""}><b>${m.name}</b><span>${m.desc}${dis?" В этом браузере нет WebGPU.":""}</span></label>`}).join("")}</div>
+    <div class="grid2">
+      <label class="field"><span>Язык разговора</span><select id="sLang">${Object.entries(LANGS).map(([k,n])=>`<option value="${k}" ${S.lang===k?"selected":""}>${n}</option>`).join("")}</select></label>
+      <div class="field"><span>Ускорение</span><label class="check" style="padding-top:10px"><input type="checkbox" id="sGpu" ${S.gpu?"checked":""} ${gpuOk?"":"disabled"}> Использовать видеокарту (в разы быстрее)${gpuOk?"":" — недоступно в этом браузере"}</label></div>
+    </div>
+    <div class="row"><button class="btn" id="sWarm">Скачать модели сейчас</button><span class="lbl" id="sWarmTxt"></span></div>
+  </div>
+
+  <div class="card set">
+    <h2>Глубокий анализ</h2>
+    <p>Разбор делает Claude. Без ключа API программа готовит запрос: вы вставляете его в claude.ai, а ответ — обратно. С ключом всё происходит само.</p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="prov" value="copy" ${A.provider==="copy"?"checked":""}><b>Через claude.ai</b><span>Без ключа, копировать и вставить. Работает из России</span></label>
+      <label class="opt"><input type="radio" name="prov" value="anthropic" ${A.provider==="anthropic"?"checked":""}><b>API Anthropic</b><span>Автоматически. Нужен ключ; из России — через прокси</span></label>
+      <label class="opt"><input type="radio" name="prov" value="openai" ${A.provider==="openai"?"checked":""}><b>OpenRouter и другие</b><span>Любой сервис с OpenAI-совместимым API</span></label>
+    </div>
+    <div class="grid2" ${A.provider==="copy"?"hidden":""}>
+      <label class="field"><span>Ключ API</span><input type="password" id="sKey" value="${esc(A.key)}" placeholder="${A.provider==="anthropic"?"sk-ant-…":"sk-or-…"}" autocomplete="off"></label>
+      <label class="field"><span>Модель</span>${A.provider==="anthropic"?`<select id="sModel">${AIMODELS.map(x=>`<option ${(A.model||"claude-opus-5-5")===x?"selected":""}>${x}</option>`).join("")}</select>`:`<input type="text" id="sModel" value="${esc(A.model)}" placeholder="например anthropic/claude-opus-4.5">`}</label>
+      <label class="field"><span>Адрес API (необязательно)</span><input type="text" id="sBase" value="${esc(A.base)}" placeholder="${A.provider==="anthropic"?"https://api.anthropic.com":"https://openrouter.ai/api/v1"}"></label>
+      <div class="field"><span>&nbsp;</span><div class="row"><label class="check"><input type="checkbox" id="sAuto" ${A.auto?"checked":""}> Запускать разбор сразу после расшифровки</label><button class="btn sm" id="sTest">Проверить</button></div></div>
+    </div>
+    ${A.provider!=="copy"?note("info","<p>Ключ хранится только в этом браузере и отправляется только выбранному сервису.</p>"):""}
+    <label class="field"><span>О компании и что важно в людях — учитывается в каждом разборе</span><textarea id="sCtx" rows="4" placeholder="Например: дилерская компания, 25 человек, ценим самостоятельность и честность, много общения с клиентами по телефону.">${esc(A.context)}</textarea></label>
+  </div>
+
+  <div class="card set">
+    <h2>Удаление</h2>
+    <p>Удалит все собеседования, звук, голос босса и настройки из этого браузера. Копии в папке на компьютере останутся.</p>
+    <div><button class="btn danger" id="sWipe">Удалить все данные</button></div>
+  </div>`;
+  $("#sBossName").oninput=e=>{S.bossName=e.target.value.trim()||"Босс";saveSettings()};
+  $("#sVoiceFile").onchange=async e=>{const files=[...e.target.files];e.target.value="";for(const f of files)await enrollFile(f,f.name)};
+  $("#sVoiceMic").onclick=()=>enrollMic();
+  if($("#sVoiceReset"))$("#sVoiceReset").onclick=e=>armed(e.currentTarget,async()=>{PROFILE=null;await saveProfile();toast("Голос сброшен");renderSettings()});
+  if($("#sFPick"))$("#sFPick").onclick=pickFolder;
+  if($("#sFAllow"))$("#sFAllow").onclick=async()=>{await Folder.allow();renderSettings()};
+  if($("#sFSync"))$("#sFSync").onclick=async e=>{e.currentTarget.disabled=true;await Folder.syncAll();toast("Копии обновлены","good");renderSettings()};
+  if($("#sFForget"))$("#sFForget").onclick=e=>armed(e.currentTarget,async()=>{await Folder.forget();toast("Больше не сохраняю в папку");renderSettings()});
+  $$('input[name=model]').forEach(r=>r.onchange=()=>{S.model=r.value;saveSettings();toast("Модель сменится со следующей записи")});
+  $("#sLang").onchange=e=>{S.lang=e.target.value;saveSettings()};
+  $("#sGpu").onchange=e=>{S.gpu=e.target.checked;saveSettings()};
+  $("#sWarm").onclick=async e=>{const b=e.currentTarget;b.disabled=true;$("#sWarmTxt").textContent="Скачиваю… прогресс — вверху справа";await Engine.warm();b.disabled=false;if(curView==="settings")renderSettings()};
+  $$('input[name=prov]').forEach(r=>r.onchange=()=>{S.ai.provider=r.value;if(r.value==="anthropic"&&!AIMODELS.includes(S.ai.model))S.ai.model="claude-opus-5-5";if(r.value==="openai"&&AIMODELS.includes(S.ai.model))S.ai.model="";saveSettings();renderSettings()});
+  const bind=(id,k)=>{const el=$(id);if(el)el.oninput=el.onchange=()=>{S.ai[k]=el.type==="checkbox"?el.checked:el.value.trim();saveSettings()}};
+  bind("#sKey","key");bind("#sModel","model");bind("#sBase","base");bind("#sAuto","auto");
+  $("#sCtx").oninput=e=>{S.ai.context=e.target.value;saveSettings()};
+  if($("#sTest"))$("#sTest").onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="Проверяю…";try{const t=await callLLM("Отвечай одним словом.","Скажи: работает");toast("Подключение работает: "+t.slice(0,40),"good")}catch(err){toast(err.message,"bad",8000)}b.disabled=false;b.textContent="Проверить"};
+  $("#sBackup").onclick=()=>backup($("#sBackupAudio").checked);
+  $("#sRestore").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restore(f)};
+  $("#sWipe").onclick=e=>armed(e.currentTarget,async()=>{if(Recorder.A){toast("Сначала остановите запись","warn");return}await DB.clear("recs");await DB.clear("audio");await DB.clear("kv");RECS.clear();audioCache.clear();PROFILE=null;Folder.handle=null;Folder.state="none";S=JSON.parse(JSON.stringify(DEF));toast("Все данные удалены");renderSettings()},"Удалить всё безвозвратно?");
+}
+function setEnroll(msg){enrollMsg=msg;const el=$("#sVoiceStatus");if(el&&curView==="settings")el.innerHTML=enrollBusy?`<div class="row"><span class="spin" style="color:var(--accent)"></span><span>${esc(msg)}</span></div>`:""}
+async function enrollFile(file,name){
+  if(enrollBusy)return;enrollBusy=true;setEnroll("Читаю файл…");
+  try{const pcm=await loadForEnroll(file);setEnroll("Запускаю распознавание голоса (первый раз скачивается около 100 МБ)…");const p=await enrollFromPCM(pcm,name,setEnroll);
+    toast(`Голос сохранён: ${fmtLong(p.secs)} речи${p.dropped?`, отброшено ${pl(p.dropped,"фрагмент","фрагмента","фрагментов")} с другими голосами`:""}`,"good",6000)}
+  catch(e){toast(e.message||"Не удалось обработать файл","bad",8000)}
+  enrollBusy=false;if(curView==="settings")renderSettings();
+}
+async function enrollMic(){
+  if(Recorder.A){toast("Сейчас идёт запись собеседования","warn");return}
+  if(enrollBusy)return;
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}})}catch(e){toast("Нет доступа к микрофону","bad");return}
+  const mime=["audio/webm;codecs=opus","audio/mp4","audio/webm"].find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m))||"";
+  const mr=new MediaRecorder(stream,mime?{mimeType:mime}:undefined),ch=[];mr.ondataavailable=e=>e.data.size&&ch.push(e.data);
+  enrollBusy=true;let left=40;
+  setEnroll(`Говорите обычным голосом: ${left} с. Например, расскажите о компании.`);
+  mr.start(500);
+  await new Promise(res=>{const t=setInterval(()=>{left--;setEnroll(`Говорите обычным голосом: ${left} с`);if(left<=0){clearInterval(t);res()}},1000)});
+  await new Promise(res=>{mr.onstop=res;mr.stop()});stream.getTracks().forEach(t=>t.stop());
+  enrollBusy=false;await enrollFile(new Blob(ch,{type:mr.mimeType||mime}),"Запись с микрофона "+new Date().toLocaleDateString("ru-RU"));
+}
+const toB64=buf=>{let s="";const u=new Uint8Array(buf);for(let i=0;i<u.length;i+=0x8000)s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000));return btoa(s)};
+const fromB64=s=>{const b=atob(s),u=new Uint8Array(b.length);for(let i=0;i<b.length;i++)u[i]=b.charCodeAt(i);return u.buffer};
+const f32Rep=(k,v)=>v instanceof Float32Array?{__f32:Array.from(v,x=>+x.toFixed(5))}:v;
+const f32Rev=(k,v)=>v&&typeof v==="object"&&v.__f32?Float32Array.from(v.__f32):v;
+async function backup(withAudio){
+  toast("Готовлю копию…","",2000);
+  const recs=await allRecs(),out={app:"slukh",brand:"Grass Voice",version:2,created:Date.now(),settings:{...S,ai:{...S.ai,key:""}},profile:PROFILE,recs:[],audio:{}};
+  for(const r of recs){out.recs.push(r);if(withAudio&&r.audio){const a=await DB.get("audio",r.id).catch(()=>null);if(a)out.audio[r.id]={type:a.type,b64:toB64(a.buf)}}}
+  download(new Blob([JSON.stringify(out,f32Rep)],{type:"application/json"}),"grass-voice-kopiya-"+new Date().toISOString().slice(0,10)+".json");
+}
+async function restore(file){
+  try{const d=JSON.parse(await file.text(),f32Rev);if(d.app!=="slukh")throw new Error("Это не копия Grass Voice");
+    let n=0;for(const r of d.recs||[]){delete r.folderDir;delete r.folderAt;r.folderAudio=false;await DB.put("recs",r.id,r);RECS.set(r.id,r);n++;const a=d.audio&&d.audio[r.id];if(a)await DB.put("audio",r.id,{type:a.type,buf:fromB64(a.b64)})}
+    if(d.profile&&!PROFILE){PROFILE=d.profile;await saveProfile()}
+    if(d.settings){const key=S.ai.key;S={...DEF,...d.settings,ai:{...DEF.ai,...d.settings.ai,key}};saveSettings()}
+    toast(`Восстановлено собеседований: ${n}`,"good");renderSettings();
+  }catch(e){toast("Не удалось восстановить: "+e.message,"bad",7000)}
+}
+
+/* =========================================================
+   Навигация и запуск
+   ========================================================= */
+let curView="";
+function route(){
+  const h=location.hash.slice(1)||"home";let v="home",id=null;
+  if(h==="new")v="new";else if(h==="settings")v="settings";else if(h.startsWith("i-")){v="int";id=h.slice(2)}
+  if(curView==="int"&&v!=="int"){const p=$("#player");if(p)p.pause()}
+  curView=v;
+  $$(".view").forEach(x=>x.hidden=x.id!=="v-"+v);
+  $$("[data-nav]").forEach(a=>a.classList.toggle("on",a.dataset.nav===v||(v==="int"&&a.dataset.nav==="home")));
+  $("#recbar").hidden=!Recorder.A||v==="new";
+  if(v==="home")renderHome();else if(v==="new")renderNew();else if(v==="settings")renderSettings();else renderInt(id);
+  window.scrollTo(0,0);
+}
+addEventListener("hashchange",route);
+$("#engine").onclick=()=>{if(Engine.error){Engine.restart();Engine.warm();toast("Перезапускаю распознавание")}else location.hash="#settings"};
+Jobs.on(id=>{
+  if(curView==="new"&&Recorder.A&&Recorder.A.rec.id===id)renderLive();
+  if(curView==="int"&&INT&&INT.rec.id===id){renderIntProc();if(!Jobs.map.has(id)){renderInt(id)}else{renderTimeline();if(INT.tab==="tr"&&!INT.edit)throttledBody()}}
+  if(curView==="home")throttledHome();
+});
+const throttledBody=debounce(()=>renderIntBody(),600),throttledHome=debounce(()=>renderHome(),800);
+setInterval(()=>{if(Engine.dlInfo()){if(curView==="int")renderIntProc();if(curView==="new"&&Recorder.A)renderLive()}},1500);
+addEventListener("beforeunload",e=>{if(Recorder.A||[...Jobs.map.values()].some(j=>!j.done)){e.preventDefault();e.returnValue="Запись или расшифровка ещё идёт"}});
+document.addEventListener("click",e=>{$$("details.menu[open]").forEach(d=>{if(!d.contains(e.target))d.open=false})});
+document.addEventListener("visibilitychange",async()=>{if(document.visibilityState==="visible"&&Folder.handle){const was=Folder.state;await Folder.check();if(was!==Folder.state)refreshView()}});
+
+(async()=>{
+  await DB.ready;await loadSettings();await Folder.load();
+  const list=await allRecs();
+  for(const r of list){if(r.status==="processing"){r.status="error";r.procError="Расшифровка прервалась: вкладку закрыли раньше, чем она закончилась.";await saveRec(r,{touch:false})}}
+  refreshEngine();route();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
