@@ -576,8 +576,9 @@ const Engine={
   },
   fail(msg){this.error=msg;this.pending.forEach(p=>p.rej(new Error(msg)));this.pending.clear();try{this.w&&this.w.terminate()}catch(e){}this.w=null;this.asrReady=this.svReady=false;this.busy=0;refreshEngine()},
   onMsg(m){
-    if(m.type==="dl"){this.dl[m.file]=[m.loaded,m.total];refreshEngine();return}
+    if(m.type==="dl"){this.dl[m.file]=[m.loaded,m.total];this.lastDl=Date.now();refreshEngine();return}
     if(m.type==="ready"){if(m.what==="asr"){this.asrReady=true;this.device=m.device;this.model=m.model;this.want=S.model+"|"+S.gpu}else this.svReady=true;
+      if(this.asrReady&&this.svReady)checkModelCache();
       if(this.asrReady&&this.svReady&&!S.modelLoaded){S.modelLoaded=true;saveSettings();toast("Модель загружена. Всё готово — можно записывать.")}
       if(typeof updateRecAvail==="function")updateRecAvail();
       if(this.asrReady&&this.svReady)this.dl={};refreshEngine();return}
@@ -594,11 +595,11 @@ const Engine={
     return new Promise((res,rej)=>{this.pending.set(id,{res,rej,onProgress:opts.onProgress,counts:opts.counts});this.w.postMessage({type,id,...data},transfer||[]);refreshEngine()});
   },
   ready(){return this.asrReady&&this.svReady&&this.want===S.model+"|"+S.gpu},
-  warm(){if(this.ready())return Promise.resolve();return this.call("warm",{model:S.model,gpu:S.gpu}).catch(e=>toast(e.message,"bad"))},
+  warm(){if(this.ready())return Promise.resolve();if(!this.warmAt)this.warmAt=Date.now();return this.call("warm",{model:S.model,gpu:S.gpu}).catch(e=>toast(e.message,"bad"))},
   transcribe(pcm,offset){return this.call("chunk",{pcm,offset,lang:S.lang,model:S.model,gpu:S.gpu},[pcm.buffer],{counts:true})},
   embedWindows(pcm,win,onProgress){return this.call("embed",{pcm,win},[pcm.buffer],{onProgress})},
   dlInfo(){let a=0,b=0;Object.values(this.dl).forEach(([x,y])=>{a+=x;b+=y});return b&&a<b?{a,b}:null},
-  restart(){if(this.w){try{this.w.terminate()}catch(e){}this.w=null}this.pending.forEach(p=>p.rej(new Error("Перезапуск")));this.pending.clear();this.asrReady=this.svReady=false;this.dl={};this.busy=0;this.error=null;refreshEngine()}
+  restart(){this.warmAt=0;this.lastDl=0;if(this.w){try{this.w.terminate()}catch(e){}this.w=null}this.pending.forEach(p=>p.rej(new Error("Перезапуск")));this.pending.clear();this.asrReady=this.svReady=false;this.dl={};this.busy=0;this.error=null;refreshEngine()}
 };
 function engineState(){
   const d=Engine.dlInfo(),jobs=[...Jobs.map.values()].filter(j=>!j.done);
@@ -609,14 +610,48 @@ function engineState(){
   if(Engine.w)return{cls:"loading",text:"Запускаю распознавание…"};
   return{cls:"",text:"Модель не загружена"};
 }
-function modelStatusHTML(){
-  const d=Engine.dlInfo();
-  if(Engine.error)return`<div class="stack"><span style="color:var(--bad)">Загрузка прервалась. Проверьте интернет и нажмите ещё раз.</span><div><button class="btn primary big" data-warm>Загрузить заново</button></div></div>`;
-  if(d)return`<div class="stack" style="gap:8px"><span>Загружается: <b>${Math.round(d.a/1e6)}</b> из ${Math.round(d.b/1e6)} МБ · ${Math.round(d.a/d.b*100)} %</span><div class="bar" style="height:8px"><i style="width:${Math.round(d.a/d.b*100)}%"></i></div><span class="lbl">Не закрывайте вкладку. Это нужно один раз.</span></div>`;
-  if(Engine.asrReady&&Engine.svReady)return`<div class="stack" style="gap:4px"><b style="font-size:18px;color:var(--good)">✓ Всё готово</b><span class="muted">Модель загружена и работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}. Переходите на вкладку «Запись».</span><div style="margin-top:8px"><a class="btn primary" href="#home">Перейти к записи</a></div></div>`;
-  if(Engine.w)return`<div class="row"><span class="spin"></span><span>${S.modelLoaded||Object.keys(Engine.dl).length?"Модель скачана, запускаю…":"Начинаю загрузку…"}</span></div>`;
-  return`<div class="stack" style="gap:8px"><div><button class="btn primary big" data-warm>Загрузить модель · 1,1 ГБ</button></div><span class="lbl">Один раз. Потом модель хранится в браузере и работает без загрузки.</span></div>`;
+const isSafari=/Safari/.test(navigator.userAgent)&&!/Chrome|Chromium|Edg|OPR/.test(navigator.userAgent);
+let CACHEINFO=null;
+async function checkModelCache(){
+  try{
+    if(!("caches" in window)){CACHEINFO={none:true};return}
+    const c=await caches.open("transformers-cache"),keys=await c.keys();let asr=0,sv=0;
+    for(const r of keys){const u=r.url;if(!/whisper-large-v3-turbo|wavlm-base-plus-sv/.test(u))continue;const res=await c.match(r);let len=+(res&&res.headers.get("content-length"))||0;if(!len&&res){try{len=(await res.blob()).size}catch(e){}}if(/whisper/.test(u))asr+=len;else sv+=len}
+    CACHEINFO={asr,sv};
+  }catch(e){CACHEINFO={none:true}}
+  const el=$("#sCache");if(el)el.innerHTML=cacheLine();
 }
+function cacheLine(){
+  if(!CACHEINFO)return"Проверяю, что лежит в памяти браузера…";
+  if(CACHEINFO.none)return"";
+  const mb=Math.round((CACHEINFO.asr+CACHEINFO.sv)/1e6),full=CACHEINFO.asr>900e6&&CACHEINFO.sv>80e6;
+  return mb?`В памяти браузера: ${mb} МБ — ${full?"модель скачана полностью":"скачана не полностью"}.`:"В памяти браузера модели нет.";
+}
+async function reinstallModel(){
+  Engine.restart();
+  try{await caches.delete("transformers-cache")}catch(e){}
+  S.modelLoaded=false;saveSettings();CACHEINFO=null;
+  toast("Старая модель удалена. Скачиваю заново с нуля…");
+  Engine.warm();refreshEngine();checkModelCache();
+}
+function modelStatusHTML(){
+  const d=Engine.dlInfo(),ready=Engine.asrReady&&Engine.svReady;
+  const redo='<button class="link" data-reinstall>Удалить и скачать заново</button>';
+  const safariNote=isSafari?note("warn","<p>Вы в Safari. Такая большая модель в Safari может не запуститься. Надёжнее открыть сайт в Google Chrome.</p>"):"";
+  if(Engine.error)return`<div class="stack"><span style="color:var(--bad)">Ошибка: ${esc(Engine.error)}</span><div class="row"><button class="btn primary" data-reinstall>Скачать заново</button></div>${safariNote}</div>`;
+  if(d)return`<div class="stack" style="gap:8px"><span>Загружается: <b>${Math.round(d.a/1e6)}</b> из ${Math.round(d.b/1e6)} МБ · ${Math.round(d.a/d.b*100)} %</span><div class="bar" style="height:8px"><i style="width:${Math.round(d.a/d.b*100)}%"></i></div><span class="lbl">Не закрывайте вкладку. Это нужно один раз.</span></div>`;
+  if(ready)return`<div class="stack" style="gap:4px"><b style="font-size:18px;color:var(--good)">✓ Всё готово</b><span class="muted">Модель загружена и работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}.</span><div class="row" style="margin-top:8px"><a class="btn primary" href="#home">Перейти к записи</a>${redo}</div></div>`;
+  if(Engine.w){
+    const since=Math.max(Engine.warmAt||0,Engine.lastDl||0),sec=since?Math.round((Date.now()-since)/1000):0;
+    const slow=sec>150;
+    return`<div class="stack" style="gap:8px"><div class="row"><span class="spin"></span><span>${S.modelLoaded||Engine.lastDl?"Модель скачана, запускаю":"Начинаю загрузку"}… ${sec?fmt(sec):""}</span></div>
+      <span class="lbl">Запуск большой модели занимает до 1–2 минут.</span>
+      ${slow?note("warn",`<p><b>Запуск идёт слишком долго.</b> ${isSafari?"Скорее всего, Safari не справляется с моделью такого размера. Откройте сайт в Google Chrome — там она работает.":"Попробуйте скачать модель заново."}</p><p><button class="btn sm" data-reinstall>Удалить и скачать заново</button></p>`):""}</div>`;
+  }
+  return`<div class="stack" style="gap:8px"><div><button class="btn primary big" data-warm>Загрузить модель · 1,1 ГБ</button></div><span class="lbl">Один раз. Потом модель хранится в браузере.</span>${safariNote}</div>`;
+}
+document.addEventListener("click",e=>{if(e.target.closest("[data-reinstall]")){reinstallModel()}});
+setInterval(()=>{if(curView==="settings"&&Engine.w&&!(Engine.asrReady&&Engine.svReady)&&!Engine.dlInfo()){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML()}},1000);
 document.addEventListener("click",e=>{if(e.target.closest("[data-warm]")){if(Engine.error)Engine.restart();Engine.warm();refreshEngine()}});
 function refreshEngine(){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML();updateRecAvail();const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
 
@@ -1439,11 +1474,11 @@ function printReport(rec){
    Настройки
    ========================================================= */
 let enrollBusy=false,enrollMsg="";
-async function renderSettings(){
+async function renderSettings(){checkModelCache();
   const v=$("#v-settings"),P=PROFILE,st=await storageInfo(),list=await allRecs();
   const eng=Engine.asrReady&&Engine.svReady,d=Engine.dlInfo();
   v.innerHTML=`<div class="page-h"><h1>Модель</h1></div>
-  <div class="card set"><h2>Модель распознавания речи</h2><p>Максимальная точность. Работает прямо в браузере — звук никуда не отправляется.</p><div id="sModel">${modelStatusHTML()}</div></div>
+  <div class="card set"><h2>Модель распознавания речи</h2><p>Максимальная точность. Работает прямо в браузере — звук никуда не отправляется.</p><div id="sModel">${modelStatusHTML()}</div><div class="lbl" id="sCache">${cacheLine()}</div></div>
   <h2 style="font-size:15px;color:var(--muted);font-weight:600;margin-top:12px">Дополнительно</h2>
   <div class="card set">
     <h2>Голос босса</h2>
