@@ -471,14 +471,21 @@ function syncFolderSoon(rec){if(!Folder.handle||rec.status!=="ready")return;clea
 /* =========================================================
    Распознавание (Web Worker)
    ========================================================= */
-function workerMain(){
-  const TF="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2";
+function workerMain(BASE,THREADS){
+  const TF_CDN="https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.0.2";
   let T=null,asr=null,asrKey="",dev="",asrModel="",sv=null,svProc=null,gpuBroken=false;
   const post=(m)=>self.postMessage(m);
   const prog=p=>{if(p.status==="progress"&&p.total)post({type:"dl",file:(p.name||"")+"/"+p.file,loaded:p.loaded,total:p.total})};
   async function lib(){
-    if(!T){T=await import(TF);T.env.allowLocalModels=false;
-      try{T.env.backends.onnx.wasm.numThreads=self.crossOriginIsolated?Math.max(1,Math.min(8,(navigator.hardwareConcurrency||4)-1)):1}catch(e){}}
+    if(!T){
+      let local=true;
+      try{T=await import(BASE+"vendor/transformers.min.js")}catch(e){local=false;T=await import(TF_CDN)}
+      T.env.allowLocalModels=false;
+      try{
+        if(local)T.env.backends.onnx.wasm.wasmPaths=BASE+"vendor/";
+        T.env.backends.onnx.wasm.numThreads=local&&self.crossOriginIsolated?THREADS:1;
+      }catch(e){}
+    }
     return T;
   }
   async function gpuInfo(){if(gpuBroken||!("gpu" in navigator))return null;try{const a=await navigator.gpu.requestAdapter();return a?{f16:a.features.has("shader-f16")}:null}catch(e){return null}}
@@ -568,7 +575,8 @@ const Engine={
   start(){
     if(this.w)return;
     this.error=null;
-    const src="("+workerMain.toString()+")()";
+    const base=new URL(".",location.href).href,thr=+(new URLSearchParams(location.search).get("threads"))||Math.max(1,Math.min(8,(navigator.hardwareConcurrency||4)-1));
+    const src="("+workerMain.toString()+")("+JSON.stringify(base)+","+thr+")";
     try{this.w=new Worker(URL.createObjectURL(new Blob([src],{type:"text/javascript"})),{type:"module"})}
     catch(e){this.fail("Браузер не поддерживает фоновое распознавание. Обновите Safari или Chrome.");return}
     this.w.onmessage=e=>this.onMsg(e.data);
@@ -648,7 +656,7 @@ function modelStatusHTML(){
       <span class="lbl">Запуск большой модели занимает до 1–2 минут.</span>
       ${slow?note("warn",`<p><b>Запуск идёт слишком долго.</b> ${isSafari?"Скорее всего, Safari не справляется с моделью такого размера. Откройте сайт в Google Chrome — там она работает.":"Попробуйте скачать модель заново."}</p><p><button class="btn sm" data-reinstall>Удалить и скачать заново</button></p>`):""}</div>`;
   }
-  return`<div class="stack" style="gap:8px"><div><button class="btn primary big" data-warm>Загрузить модель · 1,1 ГБ</button></div><span class="lbl">Один раз. Потом модель хранится в браузере.</span>${safariNote}</div>`;
+  return`<div class="stack" style="gap:8px"><div><button class="btn primary big" data-warm>Загрузить модель · 1–2 ГБ</button></div><span class="lbl">Один раз. Потом модель хранится в браузере.</span>${safariNote}</div>`;
 }
 document.addEventListener("click",e=>{if(e.target.closest("[data-reinstall]")){reinstallModel()}});
 setInterval(()=>{if(curView==="settings"&&Engine.w&&!(Engine.asrReady&&Engine.svReady)&&!Engine.dlInfo()){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML()}},1000);
