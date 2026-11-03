@@ -285,8 +285,8 @@ footer{max-width:880px;margin:0 auto;padding:0 20px 36px;color:var(--faint);font
   <div class="top-in">
     <a class="brand" href="#home">Grass Voice</a>
     <nav class="nav" aria-label="Разделы">
-      <a href="#home" data-nav="home">Собеседования</a>
-      <a href="#settings" data-nav="settings">Настройки</a>
+      <a href="#home" data-nav="home">Запись</a>
+      <a href="#settings" data-nav="settings">Модель</a>
     </nav>
     <button class="engine" id="engine" type="button"><i></i><span id="engineText"></span></button>
   </div>
@@ -403,7 +403,7 @@ const MODELS={
 const MODEL_NAME=m=>m&&m.includes("large")?"Максимальная":m&&m.includes("small")?"Точная":m&&m.includes("base")?"Быстрая":"—";
 const LANGS={russian:"Русский",english:"English",ukrainian:"Українська"};
 const AIMODELS=["claude-opus-5-5","claude-sonnet-5-5"];
-const DEF={v:3,bossName:"Босс",lang:"russian",model:"onnx-community/whisper-large-v3-turbo",folderAsked:false,gpu:true,liveDraft:null,
+const DEF={v:3,bossName:"Босс",lang:"russian",model:"onnx-community/whisper-large-v3-turbo",folderAsked:false,modelLoaded:false,gpu:true,liveDraft:null,
   ai:{provider:"copy",key:"",base:"",model:"",context:"",auto:true}};
 let S=JSON.parse(JSON.stringify(DEF));
 let PROFILE=null;
@@ -540,9 +540,9 @@ function workerMain(){
       let a0=Math.floor(s.t0*sr),a1=Math.min(x.length,Math.ceil(s.t1*sr));
       if(a1-a0<1.6*sr){const c=(a0+a1)/2;a0=Math.max(0,Math.floor(c-0.8*sr));a1=Math.min(x.length,Math.ceil(c+0.8*sr))}
       s.emb=await embed(x.slice(a0,a1));
-      if(s.t1-s.t0>7){
-        s.wins=[];
-        for(let w=a0;w+3*sr<=a1;w+=1.5*sr){if(rms(x,w,w+3*sr)<0.004)continue;s.wins.push({t:m.offset+(w+1.5*sr)/sr,emb:await embed(x.slice(w,w+3*sr))})}
+      if(s.t1-s.t0>4){
+        s.wins=[];const WL=2*sr,HOP=sr;
+        for(let w=a0;w+WL<=a1;w+=HOP){if(rms(x,w,w+WL)<0.004)continue;s.wins.push({t:m.offset+(w+WL/2)/sr,emb:await embed(x.slice(w,w+WL))})}
       }
       s.t0+=m.offset;s.t1+=m.offset;
     }
@@ -578,7 +578,9 @@ const Engine={
   onMsg(m){
     if(m.type==="dl"){this.dl[m.file]=[m.loaded,m.total];refreshEngine();return}
     if(m.type==="ready"){if(m.what==="asr"){this.asrReady=true;this.device=m.device;this.model=m.model;this.want=S.model+"|"+S.gpu}else this.svReady=true;
-      Object.keys(this.dl).forEach(k=>{const v=this.dl[k];if(v[0]>=v[1])delete this.dl[k]});refreshEngine();return}
+      if(this.asrReady&&this.svReady&&!S.modelLoaded){S.modelLoaded=true;saveSettings();toast("Модель загружена. Всё готово — можно записывать.")}
+      if(typeof updateRecAvail==="function")updateRecAvail();
+      if(this.asrReady&&this.svReady)this.dl={};refreshEngine();return}
     if(m.type==="warn"){toast(m.msg,"warn",6000);return}
     const p=this.pending.get(m.id);if(!p)return;
     if(m.type==="progress"){p.onProgress&&p.onProgress(m.done,m.total);return}
@@ -605,18 +607,18 @@ function engineState(){
   if(jobs.length||Engine.busy){const left=jobs.reduce((s,j)=>s+Math.max(0,j.total-j.doneSec),0);return{cls:"busy",text:left>1?`Расшифровка · осталось ${fmtLong(left)} записи`:"Расшифровка…"}}
   if(Engine.asrReady&&Engine.svReady)return{cls:"ready",text:"Готово к записи"};
   if(Engine.w)return{cls:"loading",text:"Запускаю распознавание…"};
-  return{cls:"",text:"Готовлю распознавание…"};
+  return{cls:"",text:"Модель не загружена"};
 }
 function modelStatusHTML(){
   const d=Engine.dlInfo();
-  if(Engine.error)return`<div class="row"><span style="color:var(--bad)">Загрузка прервалась: ${esc(Engine.error)}</span><button class="btn sm primary" data-warm>Скачать заново</button></div>`;
-  if(d)return`<div class="stack" style="gap:6px"><span>Скачивается: <b>${Math.round(d.a/1e6)}</b> из ${Math.round(d.b/1e6)} МБ (${Math.round(d.a/d.b*100)} %)</span><div class="bar"><i style="width:${Math.round(d.a/d.b*100)}%"></i></div></div>`;
-  if(Engine.asrReady&&Engine.svReady)return`<span style="color:var(--good)">● Скачана и готова — работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}.</span>`;
-  if(Engine.w)return`<div class="row"><span class="spin"></span><span>Проверяю и запускаю модель…</span></div>`;
-  return`<div class="row"><span class="muted">Ещё не скачана.</span><button class="btn sm primary" data-warm>Скачать сейчас</button></div>`;
+  if(Engine.error)return`<div class="stack"><span style="color:var(--bad)">Загрузка прервалась. Проверьте интернет и нажмите ещё раз.</span><div><button class="btn primary big" data-warm>Загрузить заново</button></div></div>`;
+  if(d)return`<div class="stack" style="gap:8px"><span>Загружается: <b>${Math.round(d.a/1e6)}</b> из ${Math.round(d.b/1e6)} МБ · ${Math.round(d.a/d.b*100)} %</span><div class="bar" style="height:8px"><i style="width:${Math.round(d.a/d.b*100)}%"></i></div><span class="lbl">Не закрывайте вкладку. Это нужно один раз.</span></div>`;
+  if(Engine.asrReady&&Engine.svReady)return`<div class="stack" style="gap:4px"><b style="font-size:18px;color:var(--good)">✓ Всё готово</b><span class="muted">Модель загружена и работает ${Engine.device==="webgpu"?"на видеокарте":"на процессоре"}. Переходите на вкладку «Запись».</span><div style="margin-top:8px"><a class="btn primary" href="#home">Перейти к записи</a></div></div>`;
+  if(Engine.w)return`<div class="row"><span class="spin"></span><span>${S.modelLoaded||Object.keys(Engine.dl).length?"Модель скачана, запускаю…":"Начинаю загрузку…"}</span></div>`;
+  return`<div class="stack" style="gap:8px"><div><button class="btn primary big" data-warm>Загрузить модель · 1,1 ГБ</button></div><span class="lbl">Один раз. Потом модель хранится в браузере и работает без загрузки.</span></div>`;
 }
 document.addEventListener("click",e=>{if(e.target.closest("[data-warm]")){if(Engine.error)Engine.restart();Engine.warm();refreshEngine()}});
-function refreshEngine(){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML();const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
+function refreshEngine(){const sm=$("#sModel");if(sm)sm.innerHTML=modelStatusHTML();updateRecAvail();const el=$("#engine");if(!el)return;const s=engineState();el.className="engine "+s.cls;$("#engineText").textContent=s.text;el.title=Engine.error||""}
 
 /* =========================================================
    Звук
@@ -1156,8 +1158,14 @@ async function pickFolder(){try{await Folder.pick();toast(`Копии будут
 
 /* ---------- запись ---------- */
 function renderNew(){
-  $("#nProfile").innerHTML=profileNote();
+  $("#nProfile").innerHTML=`<div id="nModel"></div>`+profileNote();updateRecAvail();
   setRecUI();renderLive();
+}
+function updateRecAvail(){
+  const btn=$("#recBtn");if(!btn)return;const ready=Engine.asrReady&&Engine.svReady,loading=!!Engine.dlInfo()||(Engine.w&&!ready);
+  const need=!ready&&!Recorder.A;
+  btn.disabled=need;btn.style.opacity=need?".35":"";
+  const n=$("#nModel");if(n)n.innerHTML=!need?"":loading?note("info",`<p>Модель загружается… ${Engine.dlInfo()?Math.round(Engine.dlInfo().a/Engine.dlInfo().b*100)+" %":""} Кнопка «Записать» включится сама.</p>`):note("warn",'<p>Сначала загрузите модель — это один раз. <a href="#settings">Перейти к загрузке</a></p>');
 }
 function setRecUI(){
   const on=!!Recorder.A;
@@ -1186,7 +1194,7 @@ $("#recBtn").onclick=async()=>{
       await Recorder.start({candidate:$("#nCand").value,position:""});setRecUI();renderLive();
     }
   }catch(e){toast(e.message,"bad",9000)}
-  finally{btn.disabled=false}
+  finally{btn.disabled=false;updateRecAvail()}
 };
 $("#nCand").oninput=()=>{if(Recorder.A){Recorder.A.rec.candidate=$("#nCand").value.trim();saveRecSoon(Recorder.A.rec)}};
 $("#nPos").oninput=()=>{if(Recorder.A){Recorder.A.rec.position=$("#nPos").value.trim();saveRecSoon(Recorder.A.rec)}};
@@ -1434,7 +1442,9 @@ let enrollBusy=false,enrollMsg="";
 async function renderSettings(){
   const v=$("#v-settings"),P=PROFILE,st=await storageInfo(),list=await allRecs();
   const eng=Engine.asrReady&&Engine.svReady,d=Engine.dlInfo();
-  v.innerHTML=`<div class="page-h"><h1>Настройки</h1></div>
+  v.innerHTML=`<div class="page-h"><h1>Модель</h1></div>
+  <div class="card set"><h2>Модель распознавания речи</h2><p>Максимальная точность. Работает прямо в браузере — звук никуда не отправляется.</p><div id="sModel">${modelStatusHTML()}</div></div>
+  <h2 style="font-size:15px;color:var(--muted);font-weight:600;margin-top:12px">Дополнительно</h2>
   <div class="card set">
     <h2>Голос босса</h2>
     <p>По нему программа отличает босса от кандидата. Загрузите любую запись, где он говорит 1–5 минут.</p>
@@ -1447,11 +1457,6 @@ async function renderSettings(){
     <h2>Папка для собеседований</h2>
     <p>${Folder.supported?"Каждое собеседование сохраняется в папку кандидата: «Имя Фамилия / дата Запись, Расшифровка, Отчёт». Копия остаётся и в браузере.":"Этот браузер не умеет сохранять в папку — используйте Chrome. Здесь записи хранятся в браузере, их можно скачать из каждого собеседования."}</p>
     ${Folder.supported?`<div class="row">${Folder.handle?`<span>Папка: <b>${esc(Folder.name())}</b>${Folder.state!=="granted"?" — ждёт разрешения":""}</span>${Folder.state!=="granted"?'<button class="btn primary" id="sFAllow">Разрешить</button>':""}<button class="btn" id="sFPick">Сменить</button>`:'<button class="btn primary" id="sFPick">Выбрать папку</button>'}</div>`:""}
-  </div>
-  <div class="card set">
-    <h2>Распознавание</h2>
-    <p>Максимальная модель, работает прямо в браузере, звук никуда не отправляется. Кнопка не нужна: модель качается сама, как только вы открываете сайт, — один раз, около 1,2 ГБ. Потом она хранится в браузере.</p>
-    <div id="sModel">${modelStatusHTML()}</div>
   </div>
   <div class="card set">
     <h2>Ключ Claude API</h2>
@@ -1531,7 +1536,7 @@ function route(){
   window.scrollTo(0,0);
 }
 addEventListener("hashchange",route);
-$("#engine").onclick=()=>{if(Engine.error){Engine.restart();Engine.warm();toast("Перезапускаю распознавание")}else location.hash="#settings"};
+$("#engine").onclick=()=>{location.hash="#settings"};
 Jobs.on(id=>{
   if(curView==="home"&&Recorder.A&&Recorder.A.rec.id===id)renderLive();
   if(curView==="int"&&INT&&INT.rec.id===id){renderIntProc();if(!Jobs.map.has(id)){renderInt(id)}else{renderTimeline();if(INT.tab==="tr"&&!INT.edit)throttledBody()}}
@@ -1547,7 +1552,7 @@ document.addEventListener("visibilitychange",async()=>{if(document.visibilitySta
   await DB.ready;await loadSettings();await Folder.load();
   const list=await allRecs();
   for(const r of list){if(r.status==="processing"){r.status="error";r.procError="Расшифровка прервалась: вкладку закрыли раньше, чем она закончилась.";await saveRec(r,{touch:false})}}
-  refreshEngine();route();requestAnimationFrame(frame);Engine.warm();
+  refreshEngine();route();requestAnimationFrame(frame);if(S.modelLoaded)Engine.warm();
 })();
 </script>
 </body>
