@@ -515,7 +515,7 @@ function workerMain(BASE,THREADS){
   }
   async function embed(x){const inp=await svProc(x);const o=await sv(inp);const e=o.embeddings.data;let n=0;for(let i=0;i<e.length;i++)n+=e[i]*e[i];n=Math.sqrt(n)||1;const r=new Float32Array(e.length);for(let i=0;i<e.length;i++)r[i]=e[i]/n;return r}
   function rms(x,a,b){let s=0;for(let i=a;i<b;i++)s+=x[i]*x[i];return Math.sqrt(s/Math.max(1,b-a))}
-  const HALLU=/субтитр|продолжение следует|спасибо за (?:просмотр|внимание)|подпис\S* на (?:канал|наш)|ставьте лайк|dimatorzok|amara\.org|редактор субтитров|корректор|с вами был|до новых встреч|всем пока/i;
+  const HALLU=/^(?:продолжение следует|субтитры[^.!]*|редактор субтитров[^.!]*|корректор[^.!]*|спасибо за просмотр|подписывайтесь на (?:канал|наш)[^.!]*|ставьте лайк[^.!]*|dimatorzok|amara\.org)[.!…\s]*$/i;
   function cleanText(t){
     t=String(t||"").replace(/\s+/g," ").trim();
     t=t.replace(/(^|\s)([а-яёa-z0-9-]+)(?:[\s,]+\2){3,}(?=[\s.,!?…]|$)/gi,"$1$2");
@@ -528,18 +528,20 @@ function workerMain(BASE,THREADS){
     catch(e){if(dev==="webgpu"){gpuBroken=true;try{await a.dispose()}catch(_){}asr=null;asrKey="";post({type:"warn",msg:"Сбой видеокарты, продолжаю на процессоре."});const b=await getASR(model,false);return await b(pcm,opts)}throw e}
   }
   async function transcribe(m){
-    const sr=16000,x=m.pcm,dur=x.length/sr;
-    const out=await run(x,{language:m.lang||"russian",task:"transcribe",return_timestamps:true},m.model,m.gpu);
+    const sr=16000,x=m.pcm,dur=x.length/sr,PAD=0.4,P=Math.round(PAD*sr);
+    // выравниваем громкость: тихая речь распознаётся так же, как громкая
+    let ss=0,pk=0;for(let i=0;i<x.length;i++){const v=x[i];ss+=v*v;const a=v<0?-v:v;if(a>pk)pk=a}
+    const r=Math.sqrt(ss/Math.max(1,x.length)),g=r>0&&pk>0?Math.max(1,Math.min(50,0.08/r,0.95/pk)):1;
+    const y=new Float32Array(x.length+2*P);for(let i=0;i<x.length;i++)y[P+i]=x[i]*g;
+    const out=await run(y,{language:m.lang||"russian",task:"transcribe",return_timestamps:true},m.model,m.gpu);
     const raw=(out.chunks&&out.chunks.length)?out.chunks:[{timestamp:[0,dur],text:out.text||""}];
     const segs=[];
     for(const c of raw){
-      let t0=c.timestamp&&c.timestamp[0]!=null?c.timestamp[0]:0,t1=c.timestamp&&c.timestamp[1]!=null?c.timestamp[1]:dur;
+      let t0=(c.timestamp&&c.timestamp[0]!=null?c.timestamp[0]:0)-PAD,t1=(c.timestamp&&c.timestamp[1]!=null?c.timestamp[1]:dur+2*PAD)-PAD;
       t0=Math.max(0,Math.min(dur,t0));t1=Math.max(t0+0.2,Math.min(dur,t1));
       const text=cleanText(c.text);
       if(!text||HALLU.test(text)||/^[.,!?…\s-]*$/.test(text))continue;
       if(segs.length&&segs[segs.length-1].text===text)continue;
-      const a0=Math.floor(t0*sr),a1=Math.min(x.length,Math.ceil(t1*sr));
-      if(a1-a0>sr*0.3&&rms(x,a0,a1)<0.0025)continue;
       segs.push({t0,t1,text});
     }
     await getSV();
@@ -718,19 +720,19 @@ async function loadForEnroll(file){
   try{return await decodeTo16k(file)}catch(e){throw new Error("Файл слишком большой для браузера. Вырежьте 5–10 минут речи босса или сохраните в MP3.")}
 }
 function frameStats(x){const F=320,n=Math.floor(x.length/F);let mx=0,sum=0;for(let f=0;f<n;f++){let s=0;for(let i=f*F;i<f*F+F;i++)s+=x[i]*x[i];const r=Math.sqrt(s/F);sum+=r;if(r>mx)mx=r}return{max:mx,mean:n?sum/n:0}}
-const isSilent=x=>x.length<SR*0.4||frameStats(x).max<0.008;
+const isSilent=x=>x.length<SR*0.3||frameStats(x).max<0.0004;
 class Chunker{
   constructor(emit){this.emit=emit;this.buf=new Float32Array(SR*31);this.len=0;this.offset=0;this.last=0}
   push(x){let i=0;while(i<x.length){const n=Math.min(x.length-i,this.buf.length-this.len);if(n<=0){this.cut(this.len);continue}this.buf.set(x.subarray(i,i+n),this.len);this.len+=n;i+=n;this.check()}}
   check(){
-    const len=this.len;if(len<SR*10)return;
-    if(len<SR*28&&len-this.last<SR*0.5)return;this.last=len;
+    const len=this.len;if(len<SR*8)return;
+    if(len<SR*24&&len-this.last<SR*0.5)return;this.last=len;
     const F=320,nf=Math.floor(len/F),e=new Float32Array(nf);let tot=0;
     for(let f=0;f<nf;f++){let s=0;const o=f*F;for(let i=0;i<F;i++){const v=this.buf[o+i];s+=v*v}e[f]=s/F;tot+=e[f]}
-    const mean=tot/nf,W=20,from=Math.floor(SR*8/F),to=nf-W-5;if(to<from){if(len>=SR*28)this.cut(len);return}
+    const mean=tot/nf,W=20,from=Math.floor(SR*6/F),to=nf-W-5;if(to<from){if(len>=SR*24)this.cut(len);return}
     let s=0;for(let f=from;f<from+W;f++)s+=e[f];let best=from,bv=s;
     for(let f=from+1;f<=to;f++){s+=e[f+W-1]-e[f-1];if(s<bv){bv=s;best=f}}
-    if(bv/W<mean*0.12||len>=SR*28)this.cut((best+W/2)*F);
+    if(bv/W<mean*0.12||len>=SR*24)this.cut((best+W/2)*F);
   }
   cut(n){n=Math.min(n,this.len);if(n<=0)return;const pcm=this.buf.slice(0,n);const off=this.offset;this.offset+=n/SR;this.buf.copyWithin(0,n,this.len);this.len-=n;this.last=0;this.emit(pcm,off)}
   flush(){if(this.len)this.cut(this.len)}
