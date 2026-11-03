@@ -217,7 +217,7 @@ mark{background:#FFE58A;color:#111;border-radius:2px;padding:0 1px}
 .lead{font-size:15.5px;line-height:1.6}
 .pts{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 .pts li{display:grid;gap:2px;padding-left:16px;position:relative;font-size:15px}
-.pts li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--faint)}
+.pts li::before{content:"";position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--c,var(--faint))}
 .pts.good li::before{background:var(--good)} .pts.bad li::before{background:var(--bad)}
 .quote{font-size:13.5px;color:var(--muted)}
 .tag{font-size:11.5px;font-weight:500;color:var(--bad);margin-left:6px}
@@ -786,7 +786,7 @@ const Jobs={
     if(rec.status==="ready"&&Folder.handle)await Folder.syncRec(rec,{audio:true});
     this.emit(rec.id);
     if(rec.status==="ready"){toast(`Готово: ${recTitle(rec)}. Расшифровка и анализ открыты`,"good");
-      if(S.ai.key)runAI(rec).catch(()=>{})}
+      }
     else if(rec.status==="error")toast("Расшифровка не удалась: "+j.lastError,"bad",8000);
     else toast("В записи не найдено речи. Проверьте микрофон.","warn",7000);
   }
@@ -815,22 +815,39 @@ function labelSpeakers(rec){
   const units=[];
   segs.forEach(s=>{if(s.wins&&s.wins.length>=3)s.wins.forEach(w=>units.push({e:w.emb,w:1.5}));else units.push({e:s.emb,w:clamp(s.t1-s.t0,0.5,10)})});
   const manual=rec.segs.filter(s=>s.manual&&s.emb&&(s.spk==="boss"||s.spk==="cand"));
-  let c0,c1;
-  if(P){c0=P.centroid;let mn=Infinity;units.forEach(u=>{if(u.w<1)return;const v=dot(u.e,c0);if(v<mn){mn=v;c1=u.e}});if(!c1)c1=units[units.length-1].e}
-  else{const first=units.find(u=>u.w>=1.5)||units[0];let b=first,mn=Infinity;units.forEach(u=>{const v=dot(u.e,first.e);if(v<mn){mn=v;b=u}});let a=first,mn2=Infinity;units.forEach(u=>{const v=dot(u.e,b.e);if(v<mn2){mn2=v;a=u}});c0=a.e;c1=b.e}
-  const km=kmeans2(units,[c0,c1]),c=km.c,sep=dot(c[0],c[1]);
-  let bossC,info;
+  const farthest=us=>{const first=us.find(u=>u.w>=1.5)||us[0];let b=first,mn=Infinity;us.forEach(u=>{const v=dot(u.e,first.e);if(v<mn){mn=v;b=u}});let a=first,mn2=Infinity;us.forEach(u=>{const v=dot(u.e,b.e);if(v<mn2){mn2=v;a=u}});return[a.e,b.e]};
+  const split2=(us,init)=>{const k=kmeans2(us,init),w=[0,0];us.forEach((u,i)=>w[k.lab[i]]+=u.w);const tot=w[0]+w[1]||1;return{...k,share:Math.min(w[0],w[1])/tot,minor:w[0]<w[1]?0:1}};
+  let init;
+  if(P){let c1=null,mn=Infinity;units.forEach(u=>{if(u.w<1)return;const v=dot(u.e,P.centroid);if(v<mn){mn=v;c1=u.e}});init=[P.centroid,c1||units[units.length-1].e]}
+  else init=farthest(units);
+  let km=split2(units,init),single=false;
+  const MIN_SHARE=0.1;
+  if(km.share<MIN_SHARE){
+    // маленький «второй голос» — обычно обрывки, вдохи и шум. Убираем их и проверяем ещё раз
+    const keep=units.filter((u,i)=>km.lab[i]!==km.minor);
+    if(keep.length>=4){const k2=split2(keep,farthest(keep));
+      if(k2.share>=MIN_SHARE&&dot(k2.c[0],k2.c[1])<0.75)km={lab:units.map(u=>dot(u.e,k2.c[0])>=dot(u.e,k2.c[1])?0:1),c:k2.c,share:k2.share};
+      else single=true}
+    else single=true;
+  }
+  const c=km.c,sep=dot(c[0],c[1]);
+  if(sep>0.75)single=true;
+  let bossC=0,info;
   const mb=manual.filter(s=>s.spk==="boss"),mc=manual.filter(s=>s.spk==="cand");
-  if(mb.length||mc.length){const score=k=>mb.reduce((a,s)=>a+dot(s.emb,c[k]),0)-mc.reduce((a,s)=>a+dot(s.emb,c[k]),0);bossC=score(0)>=score(1)?0:1;info={method:"manual",sep}}
+  const all=normv(meanVec(units.map(u=>u.e),units.map(u=>u.w)));
+  if(single){
+    const who=mb.length&&!mc.length?"boss":mc.length&&!mb.length?"cand":P?(dot(all,P.centroid)>=P.th-0.15?"boss":"cand"):"boss";
+    info={method:P?"profile":"cluster",sep,single:true,who};
+  }
+  else if(mb.length||mc.length){const score=k=>mb.reduce((a,s)=>a+dot(s.emb,c[k]),0)-mc.reduce((a,s)=>a+dot(s.emb,c[k]),0);bossC=score(0)>=score(1)?0:1;info={method:"manual",sep}}
   else if(P){const s0=dot(c[0],P.centroid),s1=dot(c[1],P.centroid);bossC=s0>=s1?0:1;info={method:"profile",sep,bossSim:Math.max(s0,s1),otherSim:Math.min(s0,s1)}}
   else{const fu=units.find(u=>u.w>=1.5)||units[0];bossC=km.lab[units.indexOf(fu)];info={method:"cluster",sep}}
-  const n0=km.lab.filter(l=>l===0).length,single=sep>0.86||n0===0||n0===units.length;
   info.single=single;
   if(P&&info.method==="profile"&&!single&&info.bossSim<P.th-0.25)info.bossMissing=true;
   rec.spkInfo=info;
   const cB=c[bossC],cC=c[1-bossC];
-  const lab=e=>single?(P?(dot(e,P.centroid)>=P.th-0.1?"boss":"cand"):"boss"):(dot(e,cB)>=dot(e,cC)?"boss":"cand");
-  const conf=e=>single?(P?Math.abs(dot(e,P.centroid)-(P.th-0.1)):0.02):Math.abs(dot(e,cB)-dot(e,cC));
+  const lab=e=>single?info.who:(dot(e,cB)>=dot(e,cC)?"boss":"cand");
+  const conf=e=>single?1:Math.abs(dot(e,cB)-dot(e,cC));
   const out=[];
   rec.segs.forEach(s=>{
     if(!s.emb||s.manual){delete s.wins;out.push(s);return}
@@ -1167,8 +1184,8 @@ function statusChip(rec){
   if(rec.status==="recording")return Recorder.A&&Recorder.A.rec.id===rec.id?'<span class="chip bad"><i></i>запись</span>':'<span class="chip warn">прервана</span>';
   if(rec.status==="error")return'<span class="chip bad">ошибка</span>';
   if(rec.status==="empty")return'<span class="chip warn">нет речи</span>';
-  if(rec.ai&&rec.ai.data&&rec.ai.data.verdict){const v=rec.ai.data.verdict;return`<span class="chip ${decClass(v.decision)}"><i></i>${esc(v.decision)}${v.score!=null?" · "+esc(v.score):""}</span>`}
-  return'<span class="chip">без разбора</span>';
+  if(rec.status==="ready"&&rec.segs.length){try{const A=localAnalysis(rec);if(A.single)return'<span class="chip">один голос</span>';const v=A.verdict;return`<span class="chip ${v.cls}"><i></i>${esc(v.decision)}${v.score!=null?" · "+v.score:""}</span>`}catch(e){}}
+  return'<span class="chip">—</span>';
 }
 function profileNote(){
   if(PROFILE)return"";
@@ -1185,7 +1202,7 @@ async function renderHome(){
   ${!DB.ok?note("bad","<p>Браузер не даёт сохранять данные — записи пропадут после закрытия вкладки. Откройте сайт не в режиме «Инкогнито».</p>"):""}
   ${list.length?`<div class="page-h" style="margin-top:8px"><h1 style="font-size:20px">Собеседования</h1>${list.length>6?`<input type="search" id="lSearch" placeholder="Поиск" value="${esc(listQuery)}" style="max-width:240px">`:""}</div>
   <div class="card list">${items.length?items.map(r=>{
-      const d=r.ai&&r.ai.data&&r.ai.data.verdict;
+      let d=null;try{if(r.status==="ready"&&r.segs.length){const A=localAnalysis(r);d=A.single?null:A.verdict}}catch(e){}
       const sub=(d&&d.summary)||(r.segs[0]&&r.segs[0].text)||(r.status==="processing"?"Идёт расшифровка…":"Нет текста");
       return`<a class="item" href="#i-${r.id}"><div style="min-width:0"><h3>${esc(recTitle(r))}${r.position?` <span>· ${esc(r.position)}</span>`:""}</h3><p>${esc(sub)}</p></div><div class="item-r"><span class="meta">${dateShort(r.created)} · ${fmt(r.duration)}</span>${statusChip(r)}</div></a>`}).join(""):'<div class="empty">Ничего не найдено.</div>'}</div>`:""}
   <div class="foot">
@@ -1256,7 +1273,7 @@ function transcriptHTML(rec,{live=false,q="",edit=false}={}){
     const who=live||t.spk==="?"?`<span>${esc(name)}</span>`:`<select data-turn="${ti}" aria-label="Кто говорит">${spkOpts(rec,t.spk)}</select>`;
     return`<div class="turn" data-spk="${t.spk}"><button class="ts" data-seek="${t.t0}" title="Слушать с этого места">${fmt(t.t0)}</button>
       <div class="tb"><div class="spk">${who}${uns?'<span class="unsure">проверьте, кто говорит</span>':""}</div>
-      <div class="txt">${t.idx.map(i=>{const s=rec.segs[i];return`<span class="seg${s.orig!=null?" fixed":""}" data-s="${i}"${s.orig!=null?` title="Исправлено Claude. Было: ${esc(s.orig)}"`:""}>${hl(s.text,q)}</span>`}).join(" ")}</div></div></div>`}).join("");
+      <div class="txt">${t.idx.map(i=>{const s=rec.segs[i];return`<span class="seg${s.orig!=null?" fixed":""}" data-s="${i}"${s.orig!=null?` title="Исправлено. Было: ${esc(s.orig)}"`:""}>${hl(s.text,q)}</span>`}).join(" ")}</div></div></div>`}).join("");
 }
 
 /* ---------- собеседование ---------- */
@@ -1340,7 +1357,7 @@ function renderIntBody(){
     body.innerHTML=`<div class="pad stack" style="padding-bottom:4px">
       <div class="row"><input type="search" id="trq" placeholder="Поиск по тексту" value="${esc(INT.q)}" style="flex:1 1 220px">
       <button class="btn ${INT.edit?"primary":""}" id="trEdit">${INT.edit?"Готово":"Исправить"}</button><button class="btn ghost" id="trCopy">Копировать</button></div>
-      ${nfix&&!INT.edit?`<span class="lbl">Claude исправил ${pl(nfix,"фразу","фразы","фраз")} с ошибками распознавания — они подчёркнуты пунктиром, наведите, чтобы увидеть, как было. <button class="link" data-act="undoFix">Вернуть как было</button></span>`:""}
+      ${nfix&&!INT.edit?`<span class="lbl">Исправлено ${pl(nfix,"фраза","фразы","фраз")} с ошибками распознавания — они подчёркнуты пунктиром, наведите, чтобы увидеть, как было. <button class="link" data-act="undoFix">Вернуть как было</button></span>`:""}
       ${INT.edit?'<span class="lbl">Выберите, кто говорит, и поправьте текст прямо в поле. Всё сохраняется сразу.</span>':""}
     </div><div class="transcript" id="trBox">${rec.segs.length?transcriptHTML(rec,{q:INT.q,edit:INT.edit}):`<div class="empty">${processing?"Текст появится по мере расшифровки.":"Текста нет."}</div>`}</div>`;
     $("#trq").oninput=debounce(()=>{INT.q=$("#trq").value;$("#trBox").innerHTML=transcriptHTML(rec,{q:INT.q,edit:INT.edit});const f=$("#trBox mark");f&&f.scrollIntoView({block:"center"})},250);
@@ -1354,51 +1371,104 @@ function renderIntBody(){
   const r=$("#aiReq");if(r)r.oninput=()=>{rec.req=r.value;saveRecSoon(rec)};
 }
 
-/* ---------- разбор: пять блоков ---------- */
+/* ---------- разбор: пять блоков (считает сама программа) ---------- */
 const ts=t=>{const s=parseTs(t);return s==null?"":`<button class="tsb" data-seek="${s}">${esc(fmt(s))}</button>`};
 const dots=n=>{n=clamp(Math.round(+n||0),0,5);return`<span class="dots">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`};
-const blk=(title,src,inner)=>`<section class="blk"><div class="blk-h"><h3>${title}</h3>${src?`<small>${src}</small>`:""}</div>${inner}</section>`;
-function blocksData(rec){
-  const m=metrics(rec),d=rec.ai&&rec.ai.data;
-  const good=d?(arr(d.good).length?arr(d.good):arr(d.strengths)).slice(0,5).map(x=>({p:x.point,q:x.quote,t:x.t})):
-    m.qa.filter(x=>x.qual.rating==="strong").slice(0,5).map(x=>({p:`«${x.q}» — ${x.qual.plus.join(", ")||"ответил по делу"}`,t:x.at}));
-  const bad=d?(arr(d.bad).length?arr(d.bad):arr(d.risks)).slice(0,5).map(x=>({p:x.point,q:x.quote,t:x.t,type:x.type})):
-    m.qa.filter(x=>x.qual.rating==="weak").slice(0,5).map(x=>({p:`«${x.q}» — ${x.qual.minus.join(", ")||"слабый ответ"}`,t:x.at}));
-  return{m,d,good,bad};
+const blk=(title,inner)=>`<section class="blk"><div class="blk-h"><h3>${title}</h3></div>${inner}</section>`;
+const LX={
+  example:W("например|допустим|к примеру|в компании|у нас было|у нас был|мы делали|я делал|я делала|был случай|была ситуация|когда я работал|когда я работала|на проекте|на прошлой работе|на предыдущей работе"),
+  unknown:W("не знаю|не помню|не сталкивал[а-яё]*|не работал[а-яё]* с|не умею|не разбираюсь|затрудняюсь|не могу сказать|не могу ответить|не приходилось|не пробовал[а-яё]*|понятия не имею|сложно сказать|трудно сказать"),
+  vague:W("как бы|в принципе|в целом|как-то так|всё по-разному|все по-разному|зависит от ситуации|по ситуации|ну такое|ничего особенного|разное было|всякое бывало")
+};
+function sentScore(t){
+  const w=WORDS(t),n=w.length;if(n<4)return{v:-1,n};
+  let v=0;const why=[];
+  if(RX.num.test(t)){v+=2;why.push("цифры")}
+  const a=ccount(RX.act,t);if(a){v+=a>1?2:1.5;why.push("свои действия")}
+  if(ccount(LX.example,t)){v+=1.5;why.push("пример из опыта")}
+  const names=(String(t).match(/[^.!?…\s]\s[«"]?[А-ЯЁA-Z][а-яёa-z]{2,}/g)||[]).length;if(names){v+=1;why.push("конкретные названия")}
+  const terms=w.filter(x=>x.length>=11).length;if(terms>=2&&n>=8){v+=1;why.push("профессиональные слова")}
+  RX.neg.lastIndex=0;if(RX.neg.test(t))v-=2;
+  const unk=ccount(LX.unknown,t),hed=ccount(RX.hedge,t),vag=ccount(LX.vague,t),fil=ccount(RX.fill,t);
+  v-=unk*2+hed*0.7+vag*0.8+(n>8&&fil/n>0.12?1:0);
+  return{v,n,why,unk,hed,vag,fil};
 }
-function speechLine(m){
-  const f=m.fill,h=m.hedge;
-  const tone=m.per.cand.words<30?"Кандидат сказал слишком мало, чтобы судить о речи.":f>6||h>3?"Часто запинается и сомневается в формулировках.":f>3||h>1.5?"Говорит в целом уверенно, иногда запинается.":"Говорит уверенно, почти без запинок.";
-  return`<p class="lead">${tone}</p><div class="kv"><span>Слова-паразиты <b>${f.toFixed(1)}</b> на 100 слов</span><span>Неуверенность <b>${h.toFixed(1)}</b> на 100</span>${m.lat?`<span>Пауза перед ответом <b>${m.lat.toFixed(1)} с</b></span>`:""}<span>Говорил <b>${Math.round(m.per.cand.sec/m.tot*100)} %</b> времени</span>${m.paceC?`<span>Темп <b>${m.paceC}</b> сл/мин</span>`:""}</div>`;
+function stumble(t){const w=WORDS(t);let rep=0;for(let i=1;i<w.length;i++)if(w[i]===w[i-1]&&w[i].length>1)rep++;const fil=ccount(RX.fill,t);return{rep,fil,ratio:w.length?(fil+rep)/w.length:0,n:w.length}}
+function quoteOf(t,max=14){const ss=splitSentences(t);let best=ss[0]||t,bv=-99;ss.forEach(x=>{const s=sentScore(x).v;if(s>bv){bv=s;best=x}});const w=best.split(/\s+/);return w.length>max?w.slice(0,max).join(" ")+"…":best}
+function localAnalysis(rec){
+  const m=metrics(rec),info=rec.spkInfo||{};
+  const candT=m.T.filter(t=>t.spk==="cand");
+  const sents=[];candT.forEach(t=>splitSentences(t.text).forEach(x=>sents.push({x,t:t.t0,s:sentScore(x)})));
+  const valid=sents.filter(o=>o.s.n>=6);
+  const concrete=valid.length?valid.filter(o=>o.s.v>=2).length/valid.length:0;
+  const unkS=sents.filter(o=>o.s.unk);
+  const res={m,single:!!info.single||!candT.length,few:m.per.cand.words<60};
+  // ответы
+  const qa=m.qa.map(x=>{const sc=sentScore(x.a),st=stumble(x.a);let v=sc.v;if(x.words<10)v-=2;if(x.words>=30)v+=0.5;if(st.ratio>0.1&&st.n>8)v-=1;return{...x,v,sc,st}});
+  // 2. знание дела
+  let k=1+4*clamp(concrete*1.25,0,1)-Math.min(1.5,unkS.length*0.5)-(m.hedge>3?0.5:0);
+  k=clamp(Math.round(k),1,5);
+  const seenT=new Set(),kPoints=valid.filter(o=>o.s.v>=2).sort((a,b)=>b.s.v-a.s.v).filter(o=>!seenT.has(o.t)&&seenT.add(o.t)).slice(0,3).map(o=>({p:quoteOf(o.x,18),why:o.s.why.slice(0,2).join(", "),t:o.t}));
+  if(unkS.length)kPoints.push({p:quoteOf(unkS[0].x,16),why:"признал, что не знает",t:unkS[0].t,neg:true});
+  const kSum=k>=4?"Хорошо ориентируется в своей работе: говорит конкретно, с цифрами и примерами из опыта.":k===3?"Разбирается на среднем уровне: часть ответов конкретная, часть — общими словами.":"Слабо раскрыл знания: мало конкретики, цифр и примеров из практики.";
+  res.knowledge={score:k,summary:(unkS.length?kSum+` ${unkS.length>1?"Несколько раз":"Один раз"} прямо сказал, что не знает или не сталкивался.`:kSum),points:kPoints};
+  // 3. хорошо
+  const goodQA=qa.filter(x=>x.v>=2.5).sort((a,b)=>b.v-a.v).slice(0,5).map(x=>({p:`«${x.q}»`,why:x.sc.why.slice(0,3).join(", ")||"ответил по делу",q:quoteOf(x.a),t:x.at}));
+  res.good=goodQA.length||m.qa.length?goodQA:valid.filter(o=>o.s.v>=2.5).sort((a,b)=>b.s.v-a.s.v).slice(0,5).map(o=>({p:quoteOf(o.x,18),why:o.s.why.slice(0,3).join(", "),t:o.t}));
+  // 4. ошибся или поплыл
+  const bad=[];
+  qa.forEach(x=>{
+    let type=null,why="";
+    if(x.sc.unk){type="не знает";why="прямо сказал, что не знает или не сталкивался"}
+    else if(x.words<10){type="коротко";why="ответил в нескольких словах, без раскрытия"}
+    else if(x.st.ratio>0.12&&x.st.n>8){type="плавал";why="много запинок и слов-паразитов"}
+    else if(x.v<0.5&&x.words>=10){type="вода";why=(x.sc.vag||x.sc.hed)?"общие слова и неуверенность, без примеров":"общие слова, без цифр и примеров"}
+    if(type)bad.push({p:`«${x.q}»`,type,why,q:quoteOf(x.a),t:x.at,w:type==="не знает"?3:type==="плавал"?2:1});
+  });
+  if(!m.qa.length){unkS.slice(0,3).forEach(o=>bad.push({p:quoteOf(o.x,18),type:"не знает",why:"признал, что не знает",t:o.t,w:3}))}
+  m.negs.slice(0,3).forEach(n=>{const ex=bad.find(b=>Math.abs(b.t-n.t)<0.5);if(ex){if(ex.type!=="не знает"){ex.type="негатив";ex.why="плохо отзывается о прошлом месте работы";ex.w=Math.max(ex.w,1.5)}}else bad.push({p:quoteOf(n.s,18),type:"негатив",why:"плохо отзывается о прошлом месте работы",t:n.t,w:1.5})});
+  res.bad=bad.sort((a,b)=>b.w-a.w).slice(0,5);
+  // 1. итог
+  let score=55;const hasQA=qa.length>=2;
+  if(hasQA){score+=28*qa.filter(x=>x.v>=2.5).length/qa.length-28*qa.filter(x=>x.v<0.5).length/qa.length}
+  else score+=30*(concrete-0.35);
+  score+=7*(k-3);
+  if(m.fill>3)score-=Math.min(10,(m.fill-3)*2);
+  if(m.hedge>2.5)score-=Math.min(8,(m.hedge-2.5)*3);
+  if(m.candQ.length)score+=4;
+  if(!hasQA){score-=Math.min(8,m.negs.length*4);score-=Math.min(9,unkS.length*3)}
+  if(m.per.cand.sec/m.tot<0.35)score-=5;
+  score=clamp(Math.round(score),5,95);
+  const dec=res.few?{d:"мало данных",cls:"warn"}:score>=72?{d:"сильный кандидат",cls:"good"}:score>=58?{d:"скорее да",cls:"good"}:score>=42?{d:"под вопросом",cls:"warn"}:{d:"скорее нет",cls:"bad"};
+  const parts=[];
+  if(res.few)parts.push("Кандидат сказал слишком мало, чтобы делать выводы.");
+  else{
+    parts.push(k>=4?"Говорит со знанием дела.":k===3?"Знания на среднем уровне.":"Знаний в ответах видно мало.");
+    if(res.good.length)parts.push(`Сильнее всего — ${res.good[0].why||"конкретные ответы"}${res.good[0].p&&res.good[0].p.startsWith("«")?` в ответе на ${res.good[0].p}`:""}.`);
+    if(res.bad.length)parts.push(`Главная слабость: ${res.bad[0].why}${res.bad[0].p&&res.bad[0].p.startsWith("«")?` (${res.bad[0].p})`:""}.`);
+  }
+  res.verdict={decision:dec.d,cls:dec.cls,score:res.few?null:score,summary:parts.join(" ")};
+  // 5. речь
+  const f=m.fill,h=m.hedge,stAll=stumble(candT.map(t=>t.text).join(" "));
+  res.speech={summary:res.few?"Кандидат сказал слишком мало, чтобы судить о речи.":f>6||h>3||stAll.rep>5?"Часто запинается и сомневается в формулировках.":f>3||h>1.5?"В целом уверенно, но иногда запинается и сомневается.":"Говорит уверенно и связно, почти без запинок.",rep:stAll.rep};
+  return res;
 }
-function blocksHTML(rec,{forPrint=false}={}){
-  const{m,d,good,bad}=blocksData(rec);
-  const v=d&&d.verdict,k=d&&d.knowledge,cls=v?decClass(v.decision):"";
-  const list=(items,kind)=>items.length?`<ul class="pts ${kind}">${items.map(x=>`<li><span>${esc(x.p)}${x.type?`<span class="tag">${esc(x.type)}</span>`:""}${ts(x.t)}</span>${x.q?`<span class="quote">«${esc(x.q)}»</span>`:""}</li>`).join("")}</ul>`:"";
+function speechKV(m,sp){return`<div class="kv"><span>Слова-паразиты <b>${m.fill.toFixed(1)}</b> на 100 слов</span><span>Неуверенность <b>${m.hedge.toFixed(1)}</b> на 100</span>${sp.rep?`<span>Повторы слов <b>${sp.rep}</b></span>`:""}${m.lat?`<span>Пауза перед ответом <b>${m.lat.toFixed(1)} с</b></span>`:""}<span>Говорил <b>${Math.round(m.per.cand.sec/m.tot*100)} %</b> времени</span>${m.paceC?`<span>Темп <b>${m.paceC}</b> сл/мин</span>`:""}</div>`}
+function blocksHTML(rec){
+  const A=localAnalysis(rec),m=A.m;
+  if(A.single)return blk("Итог",`<p class="lead">В записи слышен один голос${rec.spkInfo&&rec.spkInfo.who?` — «${esc(spkName(rec,rec.spkInfo.who))}»`:""}. Для разбора собеседования нужны двое: тот, кто спрашивает, и кандидат.</p><p class="muted">Если на самом деле говорили двое, поправьте подписи во вкладке «Расшифровка» — разбор пересчитается.</p>`);
+  const v=A.verdict,k=A.knowledge;
+  const list=(items,kind)=>items.length?`<ul class="pts ${kind}">${items.map(x=>`<li><span>${esc(x.p)}${x.type?`<span class="tag">${esc(x.type)}</span>`:""}${ts(x.t)}</span>${x.why?`<span class="quote">${esc(x.why)}${x.q?` — «${esc(x.q)}»`:""}</span>`:x.q?`<span class="quote">«${esc(x.q)}»</span>`:""}</li>`).join("")}</ul>`:"";
   let h="";
-  h+=blk("Итог",d?"Claude":"",v?`<div class="verdict v-${cls}"><b>${esc(v.decision||"—")}</b>${v.score!=null?`<span class="sc">${esc(v.score)} / 100</span>`:""}</div><p class="lead">${esc(v.summary||"")}</p>`
-    :`<p class="lead muted">Итог и оценку знаний даёт Claude. ${forPrint?"":"Запустите разбор внизу — это пара кликов."}</p>`);
-  h+=blk("Знание дела",d?"Claude":"",k?`<div class="row">${dots(k.score)}<span class="muted">${esc(k.score)} из 5</span></div><p class="lead">${esc(k.summary||"")}</p>${arr(k.points).length?`<ul class="pts">${arr(k.points).slice(0,3).map(x=>`<li><span>${esc(x.text||x)}${ts(x.t)}</span></li>`).join("")}</ul>`:""}`
-    :`<p class="muted">${d?"В этом разборе нет оценки знаний — обновите разбор.":"Появится после разбора Claude."}</p>`);
-  h+=blk("Ответил хорошо",d?"Claude":"программа",list(good,"good")||`<p class="muted">${d?"Сильных ответов не отмечено.":m.qa.length?"Сильных ответов не найдено: мало цифр и личных примеров.":"Пар «вопрос — ответ» не найдено. Проверьте подписи в расшифровке."}</p>`);
-  h+=blk("Где ошибся или поплыл",d?"Claude":"программа",list(bad,"bad")||`<p class="muted">${d?"Серьёзных ошибок не отмечено.":"Слабых ответов не найдено."}</p>`);
-  h+=blk("Как говорит",d&&d.speech?"Claude + программа":"программа",(d&&d.speech&&d.speech.summary?`<p class="lead">${esc(d.speech.summary)}</p>`:"")+speechLine(m).replace(/^<p class="lead">[^<]*<\/p>/,d&&d.speech&&d.speech.summary?"":"$&"));
+  h+=blk("Итог",`<div class="verdict v-${v.cls}"><b>${esc(v.decision)}</b>${v.score!=null?`<span class="sc">${v.score} / 100</span>`:""}</div><p class="lead">${esc(v.summary)}</p>`);
+  h+=blk("Знание дела",`<div class="row">${dots(k.score)}<span class="muted">${k.score} из 5</span></div><p class="lead">${esc(k.summary)}</p>${k.points.length?`<ul class="pts">${k.points.map(x=>`<li${x.neg?' style="--c:var(--bad)"':""}><span>«${esc(x.p)}»${ts(x.t)}</span>${x.why?`<span class="quote">${esc(x.why)}</span>`:""}</li>`).join("")}</ul>`:""}`);
+  h+=blk("Ответил хорошо",list(A.good,"good")||`<p class="muted">${m.qa.length?"Сильных ответов не нашлось: мало цифр, примеров и личных действий.":"Не нашлось пар «вопрос — ответ». Проверьте подписи говорящих в расшифровке."}</p>`);
+  h+=blk("Где ошибся или поплыл",list(A.bad,"bad")||'<p class="muted">Явных провалов не видно.</p>');
+  h+=blk("Как говорит",`<p class="lead">${esc(A.speech.summary)}</p>${speechKV(m,A.speech)}`);
   return h;
 }
-function ctaHTML(rec){
-  const A=S.ai,has=!!(rec.ai&&rec.ai.data),run=AIRUN.has(rec.id);
-  if(run)return`<div class="cta"><div class="row"><span class="spin"></span><span>Claude разбирает собеседование… Обычно 1–2 минуты.</span></div></div>`;
-  const inner=A.key?`<div class="row"><button class="btn primary" data-act="runAI">${has?"Обновить разбор":"Сделать разбор"}</button></div>${rec.aiError?note("bad",`<p>${esc(rec.aiError)}</p>`):""}`
-    :`<div class="steps">
-      <div><div class="stack" style="gap:6px"><span>Нажмите — запрос скопируется и откроется Claude. Вставьте его (⌘V) и отправьте.</span><div><button class="btn primary" data-act="copyPrompt">Открыть Claude с запросом</button></div></div></div>
-      <div><div class="stack" style="gap:6px"><span>Скопируйте ответ Claude и вставьте сюда.</span><textarea id="aiPaste" rows="3" placeholder="Ответ начинается с {"></textarea><div><button class="btn primary" data-act="applyPaste">Показать разбор</button></div></div></div>
-    </div>`;
-  if(has)return`<div class="cta"><details><summary>Обновить разбор</summary><div class="stack" style="margin-top:12px">${inner}</div></details></div>`;
-  return`<div class="cta"><div class="stack" style="gap:4px"><b>Разбор Claude</b><span class="lbl">Итог, знание дела, сильные и слабые ответы. Заодно Claude поправит ошибки в расшифровке.</span></div>${inner}</div>`;
-}
 function analysisHTML(rec){
-  const d=rec.ai&&rec.ai.data,stale=d&&rec.ai.hash!==segHash(rec);
-  return(stale?`<div style="padding:14px 20px 0">${note("warn","<p>Расшифровку поменяли после разбора. Обновите разбор внизу, чтобы он учёл правки.</p>")}</div>`:"")+blocksHTML(rec)+ctaHTML(rec);
+  return blocksHTML(rec)+`<div class="cta" style="background:transparent"><span class="lbl">Разбор считает сама программа по расшифровке: конкретика ответов (цифры, примеры, личные действия), признания «не знаю», запинки и уверенность речи. Если поправить текст или подписи — разбор пересчитается.</span></div>`;
 }
 
 /* действия */
@@ -1458,16 +1528,18 @@ const audioExt=t=>/mp4|m4a|aac/.test(t)?"m4a":/mpeg|mp3/.test(t)?"mp3":/ogg/.tes
    Экспорт
    ========================================================= */
 function reportMD(rec){
-  const{m,d,good,bad}=blocksData(rec),L=[];
+  const A=localAnalysis(rec),m=A.m,L=[];
   L.push(`# ${recTitle(rec)}${rec.position?" — "+rec.position:""}`);L.push(`${dateStr(rec.created)} · ${fmtLong(rec.duration)}`);
-  const v=d&&d.verdict,k=d&&d.knowledge;
-  if(v){L.push(`\n## Итог: ${v.decision||"—"}${v.score!=null?` (${v.score}/100)`:""}`);L.push(v.summary||"")}
-  if(k){L.push(`\n## Знание дела: ${k.score}/5`);L.push(k.summary||"");arr(k.points).forEach(x=>L.push(`- ${x.text||x}${x.t?` [${x.t}]`:""}`))}
-  const li=(x)=>`- ${x.p}${x.type?` (${x.type})`:""}${x.t!=null&&x.t!==""?` [${typeof x.t==="number"?fmt(x.t):x.t}]`:""}${x.q?` — «${x.q}»`:""}`;
-  L.push("\n## Ответил хорошо");good.length?good.forEach(x=>L.push(li(x))):L.push("—");
-  L.push("\n## Где ошибся или поплыл");bad.length?bad.forEach(x=>L.push(li(x))):L.push("—");
-  L.push("\n## Как говорит");if(d&&d.speech&&d.speech.summary)L.push(d.speech.summary);
-  L.push(`Слова-паразиты ${m.fill.toFixed(1)} на 100 слов · неуверенность ${m.hedge.toFixed(1)} на 100 · говорил ${Math.round(m.per.cand.sec/m.tot*100)} % времени`);
+  if(A.single){L.push("\nВ записи слышен один голос — разбора собеседования нет.")}
+  else{
+    const v=A.verdict,k=A.knowledge,li=x=>`- ${x.p}${x.type?` (${x.type})`:""}${x.t!=null?` [${fmt(x.t)}]`:""}${x.why?` — ${x.why}`:""}${x.q?` «${x.q}»`:""}`;
+    L.push(`\n## Итог: ${v.decision}${v.score!=null?` (${v.score}/100)`:""}`);L.push(v.summary);
+    L.push(`\n## Знание дела: ${k.score}/5`);L.push(k.summary);k.points.forEach(x=>L.push(`- «${x.p}» [${fmt(x.t)}]${x.why?` — ${x.why}`:""}`));
+    L.push("\n## Ответил хорошо");A.good.length?A.good.forEach(x=>L.push(li(x))):L.push("—");
+    L.push("\n## Где ошибся или поплыл");A.bad.length?A.bad.forEach(x=>L.push(li(x))):L.push("—");
+    L.push("\n## Как говорит");L.push(A.speech.summary);
+    L.push(`Слова-паразиты ${m.fill.toFixed(1)} на 100 слов · неуверенность ${m.hedge.toFixed(1)} на 100 · говорил ${Math.round(m.per.cand.sec/m.tot*100)} % времени`);
+  }
   L.push("\n## Расшифровка\n");turnsOf(rec).forEach(t=>L.push(`**[${fmt(t.t0)}] ${spkName(rec,t.spk)}:** ${t.text}\n`));
   L.push("\n---\nGrass Voice");
   return L.join("\n");
@@ -1502,11 +1574,6 @@ async function renderSettings(){checkModelCache();
     ${Folder.supported?`<div class="row">${Folder.handle?`<span>Папка: <b>${esc(Folder.name())}</b>${Folder.state!=="granted"?" — ждёт разрешения":""}</span>${Folder.state!=="granted"?'<button class="btn primary" id="sFAllow">Разрешить</button>':""}<button class="btn" id="sFPick">Сменить</button>`:'<button class="btn primary" id="sFPick">Выбрать папку</button>'}</div>`:""}
   </div>
   <div class="card set">
-    <h2>Ключ Claude API</h2>
-    <p>Необязательно. С ключом разбор делается сам сразу после расшифровки. Без ключа — одной кнопкой через claude.ai.</p>
-    <div class="row" style="max-width:520px"><input type="password" id="sKey" value="${esc(S.ai.key)}" placeholder="sk-ant-…" autocomplete="off" style="flex:1"><button class="btn" id="sTest" ${S.ai.key?"":"disabled"}>Проверить</button></div>
-  </div>
-  <div class="card set">
     <h2>Данные</h2>
     <p>В браузере: ${pl(list.length,"собеседование","собеседования","собеседований")}, ${Math.round(st.used/1e6)} МБ вместе с моделью.</p>
     <div class="row"><button class="btn" id="sBackup">Скачать копию всего</button><label class="btn ghost"><input type="file" id="sRestore" accept=".json,application/json" hidden>Восстановить</label><button class="btn ghost danger" id="sWipe">Удалить всё</button></div>
@@ -1517,8 +1584,6 @@ async function renderSettings(){checkModelCache();
   if($("#sVoiceReset"))$("#sVoiceReset").onclick=e=>armed(e.currentTarget,async()=>{PROFILE=null;await saveProfile();toast("Голос сброшен");renderSettings()});
   if($("#sFPick"))$("#sFPick").onclick=async()=>{await pickFolder();renderSettings()};
   if($("#sFAllow"))$("#sFAllow").onclick=async()=>{await Folder.allow();renderSettings()};
-  $("#sKey").oninput=e=>{S.ai.key=e.target.value.trim();S.ai.provider=S.ai.key?"anthropic":"copy";$("#sTest").disabled=!S.ai.key;saveSettings()};
-  $("#sTest").onclick=async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="Проверяю…";try{const t=await callLLM("Отвечай одним словом.","Скажи: работает");toast("Ключ работает: "+t.slice(0,40))}catch(err){toast(err.message,"bad",8000)}b.disabled=false;b.textContent="Проверить"};
   $("#sBackup").onclick=()=>backup(true);
   $("#sRestore").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)restore(f)};
   $("#sWipe").onclick=e=>armed(e.currentTarget,async()=>{if(Recorder.A){toast("Сначала остановите запись","bad");return}await DB.clear("recs");await DB.clear("audio");await DB.clear("kv");RECS.clear();audioCache.clear();PROFILE=null;Folder.handle=null;Folder.state="none";S=JSON.parse(JSON.stringify(DEF));toast("Все данные удалены");renderSettings()},"Удалить безвозвратно?");
